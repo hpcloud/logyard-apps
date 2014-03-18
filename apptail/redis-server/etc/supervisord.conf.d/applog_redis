@@ -1,0 +1,9 @@
+
+[program:applog_redis]
+command=/s/stackon/stackon-run /s/etc/stackons/stackato/applog-redis/stackon.json
+priority=1
+redirect_stderr=true
+stdout_logfile=/s/logs/applog_redis.log
+stdout_logfile_maxbytes=1MB
+stdout_logfile_backups=3
+autostart=false
