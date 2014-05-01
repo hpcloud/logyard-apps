@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/json"
 	"github.com/ActiveState/log"
+	"github.com/ActiveState/logyard-apps/common"
+	"github.com/ActiveState/logyard-apps/sieve"
+	"github.com/ActiveState/logyard-apps/systail"
 	"github.com/alecthomas/gozmq"
 	"logyard"
-	"logyard/clients/common"
-	"logyard/clients/sieve"
-	"logyard/clients/systail"
 	"stackato/server"
 	"time"
 )

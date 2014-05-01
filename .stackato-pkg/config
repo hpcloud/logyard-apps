@@ -1,0 +1,19 @@
+# Package configuration for stackato-logyard-apps
+
+# Values here will override environment variables and will be overridden
+# by command options.  This is a shell file so you can use it to perform
+# arbitrary actions.  The main intent is to set up various PKG_*
+# variables used to configure and generate the package.
+
+PKG_NAME="stackato-logyard-apps"
+PKG_VERSION="auto"
+PKG_DESCR_SHORT="stackato-logyard-apps"
+PKG_DESCR_LONG="Apps and components based on Logyard"
+PKG_GITDESCRIBE=".pkg-gitdescribe"
+
+PKG_BUILD_DEPENDS="stackato-golang (>=1.2), mercurial, bzr, zeromq-dev (>=3.2.4), redis-server, pkg-config"
+PKG_DEPENDS="zeromq-dev"
+
+PKG_WARNING="The build dependency on redis-server is used for testing only."
+
+

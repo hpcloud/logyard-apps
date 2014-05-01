@@ -2,8 +2,8 @@ package docker
 
 import (
 	"github.com/ActiveState/log"
-	"logyard/clients/common"
-	"logyard/clients/docker_events"
+	"github.com/ActiveState/logyard-apps/common"
+	"github.com/ActiveState/logyard-apps/docker_events"
 	"sync"
 )
 

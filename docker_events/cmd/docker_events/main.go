@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"github.com/ActiveState/log"
+	"github.com/ActiveState/logyard-apps/common"
+	"github.com/ActiveState/logyard-apps/docker_events"
+	"github.com/ActiveState/logyard-apps/sieve"
 	"github.com/ActiveState/zmqpubsub"
 	"logyard"
-	"logyard/clients/common"
-	"logyard/clients/docker_events"
-	"logyard/clients/sieve"
 	"stackato/server"
 	"time"
 )

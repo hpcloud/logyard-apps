@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/ActiveState/log"
-	"logyard/clients/sieve"
+	"github.com/ActiveState/logyard-apps/sieve"
 	"stackato/server"
 )
 
