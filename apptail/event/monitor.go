@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ActiveState/log"
+	"github.com/ActiveState/logyard-apps/apptail/message"
+	"github.com/ActiveState/logyard-apps/apptail/util"
+	"github.com/ActiveState/logyard-apps/common"
+	"github.com/ActiveState/logyard-apps/sieve"
 	"github.com/ActiveState/zmqpubsub"
 	"logyard"
-	"logyard/clients/apptail/message"
-	"logyard/clients/apptail/util"
-	"logyard/clients/common"
-	"logyard/clients/sieve"
 	"time"
 )
 

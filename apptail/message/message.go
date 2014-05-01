@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ActiveState/log"
+	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/zmqpubsub"
-	"logyard/clients/common"
 	"unicode/utf8"
 )
 

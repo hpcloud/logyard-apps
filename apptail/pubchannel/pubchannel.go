@@ -2,9 +2,9 @@ package pubchannel
 
 import (
 	"encoding/json"
+	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/zmqpubsub"
 	"logyard"
-	"logyard/clients/common"
 	"time"
 )
 

@@ -1,7 +1,7 @@
 package systail
 
 import (
-	"logyard/clients/common"
+	"github.com/ActiveState/logyard-apps/common"
 	"stackato/server"
 )
 

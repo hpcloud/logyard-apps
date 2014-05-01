@@ -2,7 +2,7 @@ package util
 
 import (
 	"github.com/ActiveState/log"
-	"logyard/clients/common"
+	"github.com/ActiveState/logyard-apps/common"
 	"stackato/server"
 	"sync"
 )

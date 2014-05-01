@@ -3,8 +3,8 @@ package sieve
 import (
 	"encoding/json"
 	"github.com/ActiveState/log"
+	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/zmqpubsub"
-	"logyard/clients/common"
 )
 
 type Event struct {
