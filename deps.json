@@ -1,0 +1,20 @@
+{
+    "github.com/ActiveState/tail": {
+        "repo": "http://git-mirrors.activestate.com/github.com/ActiveState/tail.git",
+        "version": "master",
+        "type": "git-clone",
+        "alias": "github.com/ActiveState/tail"
+    },
+    "github.com/nu7hatch/gouuid": {
+        "repo": "http://github.com/nu7hatch/gouuid.git",
+        "version": "0345199",
+        "type": "git-clone",
+        "alias": "github.com/nu7hatch/gouuid"
+    },
+    "logyard": {
+        "repo": "http://git-mirrors.activestate.com/github.com/ActiveState/logyard.git",
+        "version": "master",
+        "type": "git-clone",
+        "alias": "logyard"
+    }
+}
