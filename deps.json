@@ -13,7 +13,7 @@
     },
     "logyard": {
         "repo": "http://git-mirrors.activestate.com/github.com/ActiveState/logyard.git",
-        "version": "master",
+        "version": "bug103122_split_logyard",
         "type": "git-clone",
         "alias": "logyard"
     }
