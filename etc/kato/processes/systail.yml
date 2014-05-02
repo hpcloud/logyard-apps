@@ -1,6 +1,6 @@
 # Installed by package stackato-logyard.
 ---
 name: systail
-config_origin: /s/go/src/logyard/etc/systail.yml
+config_origin: /s/go/src/github.com/ActiveState/logyard-apps/etc/systail.yml
 roles:
   - base
