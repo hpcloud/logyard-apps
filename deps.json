@@ -5,6 +5,11 @@
         "type": "git-clone",
         "alias": "github.com/ActiveState/tail"
     },
+    "github.com/gorilla/websocket": {
+        "repo": "github.com/gorilla/websocket",
+        "version": "master",
+        "type": "git"
+    },
     "github.com/nu7hatch/gouuid": {
         "repo": "http://github.com/nu7hatch/gouuid.git",
         "version": "0345199",
