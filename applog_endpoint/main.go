@@ -2,6 +2,8 @@ package main
 
 import (
 	"code.google.com/p/go.net/websocket"
+	"encoding/json"
+	"fmt"
 	"github.com/ActiveState/log"
 	"io"
 	"net/http"
@@ -13,17 +15,28 @@ func echoHandler(ws *websocket.Conn) {
 
 func logsHandler(ws *websocket.Conn) {
 	q := ws.Config().Location.Query()
-	appGUID := q.Get("appGUID")
+	appGUID := q.Get("appid")
 	token := ws.Config().Header.Get("Authorization")
 	if token == "" {
 		token = q.Get("token")
 	}
+	// TODO: marshall errors in json
 	if token == "" {
 		io.WriteString(ws, "ERROR: empty token")
 	} else if appGUID == "" {
 		io.WriteString(ws, "ERROR: missing appGUID")
 	} else {
-		io.WriteString(ws, recentLogs(token, appGUID))
+		if logs, err := recentLogs(token, appGUID); err != nil {
+			io.WriteString(ws, fmt.Sprintf("ERROR: %v", err))
+		} else {
+			for _, line := range logs {
+				if output, err := json.Marshal(line); err != nil {
+					io.WriteString(ws, fmt.Sprintf("ERROR: %v", err))
+				} else {
+					ws.Write(output)
+				}
+			}
+		}
 	}
 }
 
