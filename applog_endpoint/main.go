@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
+	"github.com/ActiveState/log"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -28,7 +28,7 @@ const (
 )
 
 var (
-	addr      = flag.String("addr", ":8080", "http service address")
+	addr      = flag.String("addr", ":5722", "http service address")
 	homeTempl = template.Must(template.New("").Parse(homeHTML))
 	filename  string
 	upgrader  = websocket.Upgrader{
@@ -110,7 +110,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		if _, ok := err.(websocket.HandshakeError); !ok {
-			log.Println(err)
+			log.Info(err)
 		}
 		return
 	}
@@ -157,6 +157,11 @@ func main() {
 		log.Fatal("filename not specified")
 	}
 	filename = flag.Args()[0]
+
+	if err := advertiseToStackatoRouter(); err != nil {
+		log.Fatal(err)
+	}
+
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/ws", serveWs)
 	if err := http.ListenAndServe(*addr, nil); err != nil {
