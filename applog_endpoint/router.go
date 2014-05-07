@@ -31,7 +31,6 @@ func newRouterRegisterInfo() *routerRegisterInfo {
 }
 
 func advertiseToStackatoRouter() error {
-	// Stackato work
 	nats := server.NewNatsClient(3)
 
 	info := newRouterRegisterInfo()
