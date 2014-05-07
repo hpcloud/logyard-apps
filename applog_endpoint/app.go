@@ -3,18 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"stackato/client"
 	"stackato/server"
 )
 
-func serveDemo(w http.ResponseWriter, r *http.Request) {
-	token := r.Header.Get("Authorization")
-	result := demo(token, r.FormValue("appGUID"))
-	w.Write([]byte(result))
-}
-
-func demo(token, appGUID string) string {
+func recentLogs(token, appGUID string) string {
 	endpoint := server.GetClusterConfig().Endpoint
 	targetUrl := "https://" + endpoint
 	cli := client.NewRestClient(targetUrl, token, "")
