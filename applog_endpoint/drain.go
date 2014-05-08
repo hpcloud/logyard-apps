@@ -10,6 +10,8 @@ import (
 	"stackato/server"
 )
 
+// addDrain adds a logyard drain for the apptail.{appGUID} stream
+// pointing to ourself (port)
 func addDrain(appGUID string, port int) error {
 	name := fmt.Sprintf("tmp.websocket_endpoint.%s", appGUID)
 	uri := fmt.Sprintf("udp://%v:%v", server.LocalIPMust(), port)

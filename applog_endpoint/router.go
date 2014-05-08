@@ -6,9 +6,6 @@ import (
 	"strings"
 )
 
-const COMPONENT = "websocket_endpoint"
-const PORT = 5722
-
 type routerRegisterInfo struct {
 	Host string   `json:"host"`
 	Port int      `json:"port"`
