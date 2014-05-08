@@ -1,21 +1,49 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"github.com/ActiveState/log"
 	"logyard"
 	"logyard/drain"
-	"net"
+	"logyard/util/lineserver"
 	"stackato/server"
 )
 
+type AppLogDrain struct {
+	appGUID string
+	srv     *lineserver.LineServer
+	port    int
+}
+
+func NewAppLogDrain(appGUID string) (*AppLogDrain, error) {
+	d := new(AppLogDrain)
+
+	srv, err := lineserver.NewLineServer(
+		fmt.Sprintf("%v:0", server.LocalIPMust()))
+	if err != nil {
+		return nil, err
+	}
+
+	addr, err := srv.GetAddr()
+	if err != nil {
+		return nil, err
+	}
+
+	d.appGUID = appGUID
+	d.srv = srv
+	d.port = addr.Port
+
+	return d, nil
+}
+
 // addDrain adds a logyard drain for the apptail.{appGUID} stream
 // pointing to ourself (port)
-func addDrain(appGUID string, port int) error {
-	name := fmt.Sprintf("tmp.websocket_endpoint.%s", appGUID)
-	uri := fmt.Sprintf("udp://%v:%v", server.LocalIPMust(), port)
-	filter := fmt.Sprintf("apptail.%s", appGUID)
+func (d *AppLogDrain) addDrain() error {
+	// TODO: name should have an uniq id, to allow multiple taile
+	// sessions for same app.
+	name := fmt.Sprintf("tmp.websocket_endpoint.%s", d.appGUID)
+	uri := fmt.Sprintf("udp://%v:%v", server.LocalIPMust(), d.port)
+	filter := fmt.Sprintf("apptail.%s", d.appGUID)
 	drainURI, err := drain.ConstructDrainURI(
 		name, uri, []string{filter}, nil)
 	if err != nil {
@@ -28,38 +56,18 @@ func addDrain(appGUID string, port int) error {
 	return nil
 }
 
-func listenOnAppLogStream(appGUID string) (chan []byte, error) {
+func (d *AppLogDrain) Start() (chan string, error) {
 	// TODO: cleanup upon request and/or timeout
-	globAddr, err := net.ResolveUDPAddr(
-		"udp", fmt.Sprintf("%v:0", server.LocalIPMust()))
-	if err != nil {
-		return nil, err
-	}
-	sock, err := net.ListenUDP("udp", globAddr)
-	if err != nil {
-		return nil, fmt.Errorf("can't listen: %v", err)
-	}
+	go d.srv.Start()
 
-	addr, err := net.ResolveUDPAddr("udp", sock.LocalAddr().String())
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve udp addr: %v", err)
-	}
-	err = addDrain(appGUID, addr.Port)
+	err := d.addDrain()
 	if err != nil {
 		return nil, err
 	}
 
-	ch := make(chan []byte)
-	reader := bufio.NewReader(sock)
-	go func() {
-		for {
-			line, _, err := reader.ReadLine()
-			if err != nil {
-				ch <- []byte(fmt.Sprintf("INTERNAL ERROR %v", err))
-				return
-			}
-			ch <- line
-		}
-	}()
-	return ch, nil
+	return d.srv.Ch, nil
+}
+
+func (d *AppLogDrain) Stop() {
+	d.srv.Kill(nil)
 }

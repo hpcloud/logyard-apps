@@ -3,6 +3,7 @@ package main
 import (
 	"code.google.com/p/go.net/websocket"
 	"fmt"
+	"github.com/ActiveState/log"
 	"io"
 	"net/http"
 )
@@ -27,28 +28,34 @@ func readArguments(ws *websocket.Conn) (token, appGUID string, err error) {
 }
 
 func tailHandler(ws *websocket.Conn) {
+	log.Infof("tailHandler start %+v", ws)
 	stream := &WebSocketStream{ws}
-	token, appGUID, err = readArguments(ws)
+	token, appGUID, err := readArguments(ws)
 	if err != nil {
 		stream.Fatal(err)
 		return
 	}
 
 	// First authorize with the CC by fetching something
-	_, err := recentLogs(token, appGUID, 1)
+	_, err = recentLogs(token, appGUID, 1)
 	if err != nil {
 		stream.Fatal(err)
 		return
 	}
 
-	logsCh, err := listenOnAppLogStream(appGUID)
+	drain, err := NewAppLogDrain(appGUID)
 	if err != nil {
 		stream.Fatal(err)
 		return
 	}
-	for line := range logsCh {
+	ch, err := drain.Start()
+	if err != nil {
+		stream.Fatal(err)
+	}
+	for line := range ch {
 		stream.Send(line)
 	}
+	log.Infof("tailHandler done")
 }
 
 func serve() error {

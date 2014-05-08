@@ -18,8 +18,8 @@ type wsStreamData struct {
 }
 
 // Send sends the value back to the client
-func (s *WebSocketStream) Send(value []byte) error {
-	return s.send(&wsStreamData{"", string(value)})
+func (s *WebSocketStream) Send(value string) error {
+	return s.send(&wsStreamData{"", value})
 }
 
 // Fatalf sends the error back to the client, and closes the connection
