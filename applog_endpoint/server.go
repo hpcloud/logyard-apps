@@ -28,7 +28,7 @@ func readArguments(ws *websocket.Conn) (token, appGUID string, err error) {
 }
 
 func tailHandler(ws *websocket.Conn) {
-	log.Infof("tailHandler start %+v", ws)
+	log.Infof("tailHandler start")
 	stream := &WebSocketStream{ws}
 	token, appGUID, err := readArguments(ws)
 	if err != nil {
@@ -52,8 +52,13 @@ func tailHandler(ws *websocket.Conn) {
 	if err != nil {
 		stream.Fatal(err)
 	}
+	defer drain.Stop()
+
 	for line := range ch {
-		stream.Send(line)
+		if err := stream.Send(line); err != nil {
+			log.Infof("Closing websocket because of write error: %v", err)
+			return
+		}
 	}
 	log.Infof("tailHandler done")
 }

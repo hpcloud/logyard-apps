@@ -10,9 +10,10 @@ import (
 )
 
 type AppLogDrain struct {
-	appGUID string
-	srv     *lineserver.LineServer
-	port    int
+	appGUID   string
+	srv       *lineserver.LineServer
+	port      int
+	drainName string
 }
 
 func NewAppLogDrain(appGUID string) (*AppLogDrain, error) {
@@ -32,28 +33,11 @@ func NewAppLogDrain(appGUID string) (*AppLogDrain, error) {
 	d.appGUID = appGUID
 	d.srv = srv
 	d.port = addr.Port
-
-	return d, nil
-}
-
-// addDrain adds a logyard drain for the apptail.{appGUID} stream
-// pointing to ourself (port)
-func (d *AppLogDrain) addDrain() error {
 	// TODO: name should have an uniq id, to allow multiple taile
 	// sessions for same app.
-	name := fmt.Sprintf("tmp.websocket_endpoint.%s", d.appGUID)
-	uri := fmt.Sprintf("udp://%v:%v", server.LocalIPMust(), d.port)
-	filter := fmt.Sprintf("apptail.%s", d.appGUID)
-	drainURI, err := drain.ConstructDrainURI(
-		name, uri, []string{filter}, nil)
-	if err != nil {
-		return err
-	}
-	if err = logyard.AddDrain(name, drainURI); err != nil {
-		return err
-	}
-	log.Infof("Added drain %v => %v", name, drainURI)
-	return nil
+	d.drainName = fmt.Sprintf("tmp.websocket_endpoint.%s", d.appGUID)
+
+	return d, nil
 }
 
 func (d *AppLogDrain) Start() (chan string, error) {
@@ -69,5 +53,28 @@ func (d *AppLogDrain) Start() (chan string, error) {
 }
 
 func (d *AppLogDrain) Stop() {
-	d.srv.Kill(nil)
+	d.srv.Kill(d.removeDrain())
+}
+
+// addDrain adds a logyard drain for the apptail.{appGUID} stream
+// pointing to ourself (port)
+func (d *AppLogDrain) addDrain() error {
+	uri := fmt.Sprintf("udp://%v:%v", server.LocalIPMust(), d.port)
+	filter := fmt.Sprintf("apptail.%s", d.appGUID)
+	drainURI, err := drain.ConstructDrainURI(
+		d.drainName, uri, []string{filter}, nil)
+	if err != nil {
+		return err
+	}
+	if err = logyard.AddDrain(d.drainName, drainURI); err != nil {
+		return err
+	}
+	log.Infof("Added drain %v => %v", d.drainName, drainURI)
+	return nil
+}
+
+func (d *AppLogDrain) removeDrain() error {
+	err := logyard.DeleteDrain(d.drainName)
+	log.Infof("Removed drain %v", d.drainName)
+	return err
 }
