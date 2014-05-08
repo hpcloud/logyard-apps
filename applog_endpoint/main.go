@@ -2,7 +2,6 @@ package main
 
 import (
 	"code.google.com/p/go.net/websocket"
-	"encoding/json"
 	"fmt"
 	"github.com/ActiveState/log"
 	"io"
@@ -26,16 +25,21 @@ func logsHandler(ws *websocket.Conn) {
 	} else if appGUID == "" {
 		io.WriteString(ws, "ERROR: missing appGUID")
 	} else {
-		if logs, err := recentLogs(token, appGUID); err != nil {
+		// First authorize
+		_, err := recentLogs(token, appGUID, 1)
+		if err != nil {
 			io.WriteString(ws, fmt.Sprintf("ERROR: %v", err))
-		} else {
-			for _, line := range logs {
-				if output, err := json.Marshal(line); err != nil {
-					io.WriteString(ws, fmt.Sprintf("ERROR: %v", err))
-				} else {
-					ws.Write(output)
-				}
-			}
+			return
+		}
+
+		logsCh, err := listenOnAppLogStream(appGUID)
+		if err != nil {
+			io.WriteString(ws, fmt.Sprintf("ERROR: %v", err))
+			return
+		}
+		io.WriteString(ws, "Waiting for logs...")
+		for line := range logsCh {
+			ws.Write(line)
 		}
 	}
 }

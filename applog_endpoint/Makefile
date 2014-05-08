@@ -1,5 +1,5 @@
 all:
-	go install -v ./...
+	go install -tags zmq_3_x -v ./...
 
 fmt:
 	go fmt

@@ -5,9 +5,10 @@ import (
 	"stackato/server"
 )
 
-func recentLogs(token, appGUID string) ([]client.AppLogLine, error) {
+func recentLogs(token, appGUID string, num int) ([]client.AppLogLine, error) {
 	endpoint := server.GetClusterConfig().Endpoint
 	targetUrl := "https://" + endpoint
-	cli := client.NewRestClient(targetUrl, token, "")
-	return cli.GetLogs(appGUID, 5)
+	space := "" // we don't care about space
+	cli := client.NewRestClient(targetUrl, token, space)
+	return cli.GetLogs(appGUID, num)
 }
