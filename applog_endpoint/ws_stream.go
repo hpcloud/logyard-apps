@@ -24,7 +24,8 @@ func (s *WebSocketStream) Send(value string) error {
 
 // Fatalf sends the error back to the client, and closes the connection
 func (s *WebSocketStream) Fatalf(format string, v ...interface{}) {
-	err := s.send(&wsStreamData{fmt.Sprintf(format, v...), ""})
+	data := &wsStreamData{fmt.Sprintf(format, v...), ""}
+	err := s.send(data)
 	if err != nil {
 		log.Warnf("Error sending error back to websocket client: %v", err)
 	}

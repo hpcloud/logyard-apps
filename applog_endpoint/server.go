@@ -27,8 +27,18 @@ func readArguments(ws *websocket.Conn) (token, appGUID string, err error) {
 	return
 }
 
+func getWsConnId(ws *websocket.Conn) string {
+	config := ws.Config()
+	req := ws.Request()
+	return fmt.Sprintf("ws:/%v %v (proto %+v; version %v)",
+		req.URL.Path, req.RemoteAddr,
+		config.Protocol, config.Version)
+}
+
 func tailHandler(ws *websocket.Conn) {
-	log.Infof("tailHandler start")
+	log.Infof("WS init - %v", getWsConnId(ws))
+	defer log.Infof("WS done - %v", getWsConnId(ws))
+
 	stream := &WebSocketStream{ws}
 	token, appGUID, err := readArguments(ws)
 	if err != nil {
@@ -39,7 +49,7 @@ func tailHandler(ws *websocket.Conn) {
 	// First authorize with the CC by fetching something
 	_, err = recentLogs(token, appGUID, 1)
 	if err != nil {
-		stream.Fatal(err)
+		stream.Fatalf("%v", err)
 		return
 	}
 
@@ -64,7 +74,7 @@ func tailHandler(ws *websocket.Conn) {
 	if err := drain.Wait(); err != nil {
 		log.Warnf("Error from app log drain server: %v", err)
 	}
-	log.Infof("tailHandler done")
+
 }
 
 func serve() error {
