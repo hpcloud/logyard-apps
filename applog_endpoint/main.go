@@ -8,9 +8,13 @@ const COMPONENT = "websocket_endpoint"
 const PORT = 5722
 
 func main() {
+	// TODO: remove orphaned drains
+
 	if err := advertiseToStackatoRouter(); err != nil {
 		log.Fatal(err)
 	}
 
-	log.Fatal(serve())
+	err := serve()
+
+	log.Fatal(err)
 }

@@ -7,12 +7,14 @@ import (
 	"logyard/drain"
 	"logyard/util/lineserver"
 	"stackato/server"
+	"time"
 )
 
 type AppLogDrain struct {
 	appGUID   string
 	srv       *lineserver.LineServer
 	port      int
+	lifetime  time.Duration // Keep the drain alive for this long
 	drainName string
 }
 
@@ -33,6 +35,7 @@ func NewAppLogDrain(appGUID string) (*AppLogDrain, error) {
 	d.appGUID = appGUID
 	d.srv = srv
 	d.port = addr.Port
+	d.lifetime = time.Duration(20 * time.Second)
 	// TODO: name should have an uniq id, to allow multiple taile
 	// sessions for same app.
 	d.drainName = fmt.Sprintf("tmp.websocket_endpoint.%s", d.appGUID)
@@ -41,7 +44,6 @@ func NewAppLogDrain(appGUID string) (*AppLogDrain, error) {
 }
 
 func (d *AppLogDrain) Start() (chan string, error) {
-	// TODO: cleanup upon request and/or timeout
 	go d.srv.Start()
 
 	err := d.addDrain()
@@ -49,11 +51,27 @@ func (d *AppLogDrain) Start() (chan string, error) {
 		return nil, err
 	}
 
+	go func() {
+		select {
+		case <-time.After(d.lifetime):
+			d.Stop(fmt.Errorf("Time out %v", d.lifetime))
+		case <-d.srv.Dying():
+		}
+	}()
+
 	return d.srv.Ch, nil
 }
 
-func (d *AppLogDrain) Stop() {
-	d.srv.Kill(d.removeDrain())
+func (d *AppLogDrain) Stop(reason error) {
+	log.Infof("Stopping drain for reason: %v", reason)
+	if err := d.removeDrain(); err != nil {
+		log.Errorf("Failed to remove drain %v: %v", d.drainName, err)
+	}
+	d.srv.Kill(reason)
+}
+
+func (d *AppLogDrain) Wait() error {
+	return d.srv.Wait()
 }
 
 // addDrain adds a logyard drain for the apptail.{appGUID} stream

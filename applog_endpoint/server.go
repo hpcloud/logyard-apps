@@ -52,13 +52,16 @@ func tailHandler(ws *websocket.Conn) {
 	if err != nil {
 		stream.Fatal(err)
 	}
-	defer drain.Stop()
+	defer drain.Stop(nil)
 
 	for line := range ch {
 		if err := stream.Send(line); err != nil {
 			log.Infof("Closing websocket because of write error: %v", err)
 			return
 		}
+	}
+	if err := drain.Wait(); err != nil {
+		log.Warnf("Error from app log drain server: %v", err)
 	}
 	log.Infof("tailHandler done")
 }
