@@ -1,4 +1,5 @@
 ---
 name: applog_endpoint
+config_origin: /s/go/src/github.com/ActiveState/logyard-apps/etc/applog_endpoint.yml
 roles:
   - controller
