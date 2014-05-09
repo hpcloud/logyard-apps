@@ -1,3 +1,4 @@
-Clients for logyard.
+# logyard apps
 
-Not associated with logyard core itself.
+apps using logyard, directly (zmq) or as a drain.
+
