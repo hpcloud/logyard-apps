@@ -1,0 +1,4 @@
+---
+name: applog_endpoint
+roles:
+  - controller

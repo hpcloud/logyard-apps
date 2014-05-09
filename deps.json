@@ -1,4 +1,9 @@
 {
+    "code.google.com/p/go.net/websocket": {
+        "repo": "code.google.com/p/go.net/websocket",
+        "version": "53130366067a9f0b47893ae8a81677391fdd0f42",
+        "type": "hg"
+    },
     "github.com/ActiveState/tail": {
         "repo": "http://git-mirrors.activestate.com/github.com/ActiveState/tail.git",
         "version": "master",
@@ -13,7 +18,7 @@
     },
     "logyard": {
         "repo": "http://git-mirrors.activestate.com/github.com/ActiveState/logyard.git",
-        "version": "master",
+        "version": "websocket_endpoint",
         "type": "git-clone",
         "alias": "logyard"
     }
