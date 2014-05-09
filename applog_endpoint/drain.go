@@ -35,7 +35,11 @@ func NewAppLogDrain(appGUID string) (*AppLogDrain, error) {
 	d.appGUID = appGUID
 	d.srv = srv
 	d.port = addr.Port
-	d.lifetime = time.Duration(20 * time.Second)
+	d.lifetime, err = time.ParseDuration(GetConfig().DrainLifetime)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Invalid duration value (%v) for drain_lifetime", err)
+	}
 	// TODO: name should have an uniq id, to allow multiple taile
 	// sessions for same app.
 	d.drainName = fmt.Sprintf("tmp.websocket_endpoint.%s", d.appGUID)
@@ -54,7 +58,7 @@ func (d *AppLogDrain) Start() (chan string, error) {
 	go func() {
 		select {
 		case <-time.After(d.lifetime):
-			d.Stop(fmt.Errorf("Time out %v", d.lifetime))
+			d.Stop(fmt.Errorf("Timed out %v", d.lifetime))
 		case <-d.srv.Dying():
 		}
 	}()
