@@ -18,7 +18,7 @@
     },
     "logyard": {
         "repo": "http://git-mirrors.activestate.com/github.com/ActiveState/logyard.git",
-        "version": "websocket_endpoint",
+        "version": "master",
         "type": "git-clone",
         "alias": "logyard"
     }
