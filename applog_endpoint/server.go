@@ -42,7 +42,7 @@ func tailHandler(ws *websocket.Conn) {
 	stream := &WebSocketStream{ws}
 	token, appGUID, err := readArguments(ws)
 	if err != nil {
-		stream.Fatal(err)
+		stream.Fatalf("Invalid arguments: %v", err)
 		return
 	}
 
@@ -55,12 +55,12 @@ func tailHandler(ws *websocket.Conn) {
 
 	drain, err := NewAppLogDrain(appGUID)
 	if err != nil {
-		stream.Fatal(err)
+		stream.Fatalf("Unable to create drain: %v", err)
 		return
 	}
 	ch, err := drain.Start()
 	if err != nil {
-		stream.Fatal(err)
+		stream.Fatalf("Unable to start drain: %v", err)
 	}
 
 	for line := range ch {

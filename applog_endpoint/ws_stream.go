@@ -32,10 +32,6 @@ func (s *WebSocketStream) Fatalf(format string, v ...interface{}) {
 	s.Close()
 }
 
-func (s *WebSocketStream) Fatal(v ...interface{}) {
-	s.Fatal(fmt.Sprint(v...))
-}
-
 func (s *WebSocketStream) send(data *wsStreamData) error {
 	jdata, err := json.Marshal(data)
 	if err != nil {
