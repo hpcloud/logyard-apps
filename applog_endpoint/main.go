@@ -11,9 +11,7 @@ func main() {
 	// TODO: remove orphaned drains
 	LoadConfig()
 
-	if err := advertiseToStackatoRouter(); err != nil {
-		log.Fatal(err)
-	}
+	routerMain()
 
 	err := serve()
 

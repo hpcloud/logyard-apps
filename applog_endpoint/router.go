@@ -2,9 +2,12 @@ package main
 
 import (
 	"github.com/ActiveState/log"
+	"github.com/apcera/nats"
 	"stackato/server"
 	"strings"
 )
+
+var NATS *nats.EncodedConn
 
 type routerRegisterInfo struct {
 	Host string   `json:"host"`
@@ -27,10 +30,15 @@ func newRouterRegisterInfo() *routerRegisterInfo {
 	return info
 }
 
-func advertiseToStackatoRouter() error {
-	nats := server.NewNatsClient(3)
-
+func routerAdvertise(m interface{}) {
 	info := newRouterRegisterInfo()
-	log.Infof("Advertising ourself to router: %+v", info)
-	return nats.Publish("router.register", info)
+	log.Infof("Advertising ourself to router: %+v (router.start? %+v)",
+		info, m)
+	NATS.Publish("router.register", info)
+}
+
+func routerMain() {
+	NATS = server.NewNatsClient(3)
+	routerAdvertise(nil)
+	NATS.Subscribe("router.start", routerAdvertise)
 }
