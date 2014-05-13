@@ -88,7 +88,9 @@ func tailHandlerWs(
 
 	// We expect drain.Wait to not block at this point.
 	if err := drain.Wait(); err != nil {
-		log.Warnf("Error from app log drain server: %v", err)
+		if _, ok := err.(WebSocketStreamError); !ok {
+			log.Warnf("Error from app log drain server: %v", err)
+		}
 	}
 }
 

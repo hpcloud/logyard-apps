@@ -12,6 +12,10 @@ type WebSocketStream struct {
 	*websocket.Conn
 }
 
+type WebSocketStreamError struct {
+	error
+}
+
 type wsStreamData struct {
 	Err   string      `json:"error"`
 	Value interface{} `json:"value"`
@@ -27,16 +31,16 @@ func (s *WebSocketStream) Forward(ch chan string) error {
 				return nil // All done.
 			}
 			if err := s.Send(line); err != nil {
-				return fmt.Errorf(
-					"Closing websocket because of write error: %v", err)
+				return WebSocketStreamError{fmt.Errorf(
+					"Closing websocket because of write error: %v", err)}
 			}
 		case <-time.After(time.Second):
 			// Check if client is alive every second
 			err := s.WriteControl(
 				websocket.PingMessage, nil, time.Now().Add(time.Second))
 			if err != nil {
-				return fmt.Errorf(
-					"Closing websocket because of ping error: %v", err)
+				return WebSocketStreamError{fmt.Errorf(
+					"Closing websocket because of ping error: %v", err)}
 			}
 
 		}
