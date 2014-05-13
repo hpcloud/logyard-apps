@@ -80,20 +80,16 @@ func tailHandlerWs(
 		stream.Fatalf("Unable to start drain: %v", err)
 	}
 
-	// TODO: don't block here forever; handle client disconnections.
-	// else, we keep the drain open for 20m.
-	for line := range ch {
-		if err := stream.Send(line); err != nil {
-			log.Infof("Closing websocket because of write error: %v", err)
-			drain.Stop(err)
-			return
-		}
+	err = stream.Forward(ch)
+	if err != nil {
+		log.Infof("%v", err)
+		drain.Stop(err)
 	}
 
+	// We expect drain.Wait to not block at this point.
 	if err := drain.Wait(); err != nil {
 		log.Warnf("Error from app log drain server: %v", err)
 	}
-
 }
 
 func serve() error {
