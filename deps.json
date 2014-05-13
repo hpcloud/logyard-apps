@@ -5,6 +5,11 @@
         "type": "git-clone",
         "alias": "github.com/ActiveState/tail"
     },
+    "github.com/gorilla/mux": {
+        "repo": "github.com/gorilla/mux",
+        "version": "136d54f81f00414c45c3c68dd47e98cc97519c5e",
+        "type": "git"
+    },
     "github.com/gorilla/websocket": {
         "repo": "github.com/gorilla/websocket",
         "version": "10a95d14a3a215f5e2045d3dbbcd29f1ab209586",

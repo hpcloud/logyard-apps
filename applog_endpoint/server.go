@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/ActiveState/log"
+	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"net/http"
 )
@@ -17,15 +18,14 @@ var upgrader = websocket.Upgrader{
 }
 
 func readArguments(r *http.Request) (token, appGUID string, err error) {
-	appGUID = r.FormValue("appid")
+	vars := mux.Vars(r)
+
+	appGUID = vars["guid"]
 	token = r.Header.Get("Authorization")
 	if token == "" {
-		token = r.FormValue("token")
-	}
-	if token == "" {
-		err = fmt.Errorf("empty token")
+		err = fmt.Errorf("missing token")
 	} else if appGUID == "" {
-		err = fmt.Errorf("missing appGUID")
+		err = fmt.Errorf("missing app guid")
 	}
 	return
 }
@@ -96,6 +96,8 @@ func tailHandlerWs(
 
 func serve() error {
 	addr := fmt.Sprintf(":%d", PORT)
-	http.HandleFunc("/tail", tailHandler)
+	r := mux.NewRouter()
+	r.HandleFunc("/v2/apps/{guid}/tail", tailHandler)
+	http.Handle("/", r)
 	return http.ListenAndServe(addr, nil)
 }
