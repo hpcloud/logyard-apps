@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/ActiveState/log"
 	"github.com/gorilla/websocket"
@@ -14,8 +13,8 @@ type WebSocketStream struct {
 }
 
 type wsStreamData struct {
-	Err   string `json:"error"`
-	Value string `json:"value"`
+	Err   string      `json:"error"`
+	Value interface{} `json:"value"`
 }
 
 // Forward reads from channel and sends the values. Also pings the
@@ -60,9 +59,5 @@ func (s *WebSocketStream) Fatalf(format string, v ...interface{}) {
 }
 
 func (s *WebSocketStream) send(data *wsStreamData) error {
-	jdata, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-	return s.WriteMessage(websocket.TextMessage, jdata)
+	return s.WriteJSON(data)
 }
