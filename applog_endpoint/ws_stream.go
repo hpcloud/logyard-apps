@@ -1,10 +1,10 @@
 package main
 
 import (
-	"code.google.com/p/go.net/websocket"
 	"encoding/json"
 	"fmt"
 	"github.com/ActiveState/log"
+	"github.com/gorilla/websocket"
 )
 
 // WebSocketStream wraps a websocket connection to provide error handling
@@ -37,6 +37,5 @@ func (s *WebSocketStream) send(data *wsStreamData) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.Write(jdata)
-	return err
+	return s.WriteMessage(websocket.TextMessage, jdata)
 }
