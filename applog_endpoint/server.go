@@ -1,23 +1,26 @@
 package main
 
 import (
-	"code.google.com/p/go.net/websocket"
 	"fmt"
 	"github.com/ActiveState/log"
-	"io"
+	"github.com/gorilla/websocket"
 	"net/http"
 )
 
-func echoHandler(ws *websocket.Conn) {
-	io.Copy(ws, ws)
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		// Ignore origin checks (won't work with wscat)
+		return true
+	},
 }
 
-func readArguments(ws *websocket.Conn) (token, appGUID string, err error) {
-	q := ws.Config().Location.Query()
-	appGUID = q.Get("appid")
-	token = ws.Config().Header.Get("Authorization")
+func readArguments(r *http.Request) (token, appGUID string, err error) {
+	appGUID = r.FormValue("appid")
+	token = r.Header.Get("Authorization")
 	if token == "" {
-		token = q.Get("token")
+		token = r.FormValue("token")
 	}
 	if token == "" {
 		err = fmt.Errorf("empty token")
@@ -27,27 +30,41 @@ func readArguments(ws *websocket.Conn) (token, appGUID string, err error) {
 	return
 }
 
-func getWsConnId(ws *websocket.Conn) string {
-	config := ws.Config()
-	req := ws.Request()
-	return fmt.Sprintf("ws:/%v %v (proto %+v; version %v)",
-		req.URL.Path, req.RemoteAddr,
-		config.Protocol, config.Version)
+func getWsConnId(r *http.Request, ws *websocket.Conn) string {
+	return fmt.Sprintf("ws:/%v %v (subprotocol %+v)",
+		r.URL.Path, ws.RemoteAddr(), ws.Subprotocol())
 }
 
-func tailHandler(ws *websocket.Conn) {
-	log.Infof("WS init - %v", getWsConnId(ws))
-	defer log.Infof("WS done - %v", getWsConnId(ws))
-
-	stream := &WebSocketStream{ws}
-	token, appGUID, err := readArguments(ws)
+func tailHandler(w http.ResponseWriter, r *http.Request) {
+	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		stream.Fatalf("Invalid arguments: %v", err)
+		if _, ok := err.(websocket.HandshakeError); !ok {
+			log.Infof("Handshake error: %v", err)
+		} else {
+			log.Infof("Unknown websocket error: %v", err)
+		}
 		return
 	}
 
+	token, appGUID, err := readArguments(r)
+	if err != nil {
+		http.Error(
+			w, fmt.Sprintf("Invalid arguments; %v", err), 400)
+		return
+	}
+
+	tailHandlerWs(r, ws, token, appGUID)
+}
+
+func tailHandlerWs(
+	r *http.Request, ws *websocket.Conn, token, appGUID string) {
+	log.Infof("WS init - %v", getWsConnId(r, ws))
+	defer log.Infof("WS done - %v", getWsConnId(r, ws))
+
+	stream := &WebSocketStream{ws}
+
 	// First authorize with the CC by fetching something
-	_, err = recentLogs(token, appGUID, 1)
+	_, err := recentLogs(token, appGUID, 1)
 	if err != nil {
 		stream.Fatalf("%v", err)
 		return
@@ -63,6 +80,8 @@ func tailHandler(ws *websocket.Conn) {
 		stream.Fatalf("Unable to start drain: %v", err)
 	}
 
+	// TODO: don't block here forever; handle client disconnections.
+	// else, we keep the drain open for 20m.
 	for line := range ch {
 		if err := stream.Send(line); err != nil {
 			log.Infof("Closing websocket because of write error: %v", err)
@@ -79,7 +98,6 @@ func tailHandler(ws *websocket.Conn) {
 
 func serve() error {
 	addr := fmt.Sprintf(":%d", PORT)
-	http.Handle("/echo", websocket.Handler(echoHandler))
-	http.Handle("/tail", websocket.Handler(tailHandler))
+	http.HandleFunc("/tail", tailHandler)
 	return http.ListenAndServe(addr, nil)
 }
