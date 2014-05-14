@@ -17,19 +17,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func readArguments(r *http.Request) (token, appGUID string, err error) {
-	vars := mux.Vars(r)
-
-	appGUID = vars["guid"]
-	token = r.Header.Get("Authorization")
-	if token == "" {
-		err = fmt.Errorf("missing token")
-	} else if appGUID == "" {
-		err = fmt.Errorf("missing app guid")
-	}
-	return
-}
-
+// XXX: pass this as a log context (gorilla) object
 func getWsConnId(r *http.Request, ws *websocket.Conn) string {
 	return fmt.Sprintf("ws:/%v %v (subprotocol %+v)",
 		r.URL.Path, ws.RemoteAddr(), ws.Subprotocol())
@@ -46,31 +34,45 @@ func tailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, appGUID, err := readArguments(r)
+	args, err := ParseArguments(r)
 	if err != nil {
 		http.Error(
 			w, fmt.Sprintf("Invalid arguments; %v", err), 400)
 		return
 	}
 
-	tailHandlerWs(r, ws, token, appGUID)
+	tailHandlerWs(r, ws, args)
 }
 
 func tailHandlerWs(
-	r *http.Request, ws *websocket.Conn, token, appGUID string) {
+	r *http.Request, ws *websocket.Conn, args *Arguments) {
 	log.Infof("WS init - %v", getWsConnId(r, ws))
 	defer log.Infof("WS done - %v", getWsConnId(r, ws))
 
 	stream := &WebSocketStream{ws}
 
 	// First authorize with the CC by fetching something
-	_, err := recentLogs(token, appGUID, 1)
+	_, err := recentLogs(args.Token, args.GUID, 1)
 	if err != nil {
 		stream.Fatalf("%v", err)
 		return
 	}
 
-	drain, err := NewAppLogDrain(appGUID)
+	// Recent history requested?
+	if args.Num > 0 {
+		recentLogs, err := recentLogs(args.Token, args.GUID, args.Num)
+		if err != nil {
+			stream.Fatalf("%v", err)
+			return
+		}
+		for _, _ = range recentLogs {
+			// TODO: make CC return raw log data from apptail as-is
+			// without mangling.
+			stream.Send("{}")
+		}
+	}
+
+	drain, err := NewAppLogDrain(args.GUID)
 	if err != nil {
 		stream.Fatalf("Unable to create drain: %v", err)
 		return
@@ -98,6 +100,7 @@ func serve() error {
 	addr := fmt.Sprintf(":%d", PORT)
 	r := mux.NewRouter()
 	r.HandleFunc("/v2/apps/{guid}/tail", tailHandler)
+	// r.HandleFunc("/v2/apps/{guid}/recent", recentHandler)
 	http.Handle("/", r)
 	return http.ListenAndServe(addr, nil)
 }
