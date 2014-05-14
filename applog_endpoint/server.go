@@ -35,8 +35,7 @@ func recentHandlerWs(
 	w http.ResponseWriter, r *http.Request, stream *wsutil.WebSocketStream) {
 	args, err := ParseArguments(r)
 	if err != nil {
-		http.Error(
-			w, fmt.Sprintf("Invalid arguments; %v", err), 400)
+		stream.Fatalf("Invalid arguments; %v", err)
 		return
 	}
 
@@ -50,8 +49,7 @@ func tailHandlerWs(
 	w http.ResponseWriter, r *http.Request, stream *wsutil.WebSocketStream) {
 	args, err := ParseArguments(r)
 	if err != nil {
-		http.Error(
-			w, fmt.Sprintf("Invalid arguments; %v", err), 400)
+		stream.Fatalf("Invalid arguments; %v", err)
 		return
 	}
 
