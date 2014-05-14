@@ -23,6 +23,7 @@ log_files:
   aok: ""
   app_mdns: ""
   app_store: ""
+  applog_endpoint: ""
   applog_redis: ""
   apptail: ""
   avahi_daemon: ""
