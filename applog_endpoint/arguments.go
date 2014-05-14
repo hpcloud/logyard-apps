@@ -33,9 +33,13 @@ func ParseArguments(r *http.Request) (*Arguments, error) {
 
 	args.Token = r.Header.Get("Authorization")
 	args.GUID = vars["guid"]
-	args.Num, err = strconv.Atoi(r.FormValue("num"))
-	if err != nil {
-		return nil, err
+	if r.FormValue("num") == "" {
+		args.Num = 0
+	} else {
+		args.Num, err = strconv.Atoi(r.FormValue("num"))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return args, args.Validate()
