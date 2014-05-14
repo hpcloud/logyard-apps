@@ -65,10 +65,10 @@ func tailHandlerWs(
 			stream.Fatalf("%v", err)
 			return
 		}
-		for _, _ = range recentLogs {
+		for _, line := range recentLogs {
 			// TODO: make CC return raw log data from apptail as-is
 			// without mangling.
-			stream.Send("{}")
+			stream.Send(line)
 		}
 	}
 
