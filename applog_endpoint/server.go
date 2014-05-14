@@ -8,27 +8,6 @@ import (
 	"net/http"
 )
 
-func recentHandler(w http.ResponseWriter, r *http.Request) {
-	log.Infof("%v", r)
-	args, err := ParseArguments(r)
-	if err != nil {
-		http.Error(
-			w, fmt.Sprintf("Invalid arguments; %v", err), 400)
-		return
-	}
-
-	recentLogs, err := recentLogs(args.Token, args.GUID, args.Num)
-	if err != nil {
-		http.Error(
-			w, fmt.Sprintf("%v", err), 500)
-		return
-	}
-	for _, line := range recentLogs {
-		w.Write([]byte(line))
-	}
-
-}
-
 func sendRecent(stream *wsutil.WebSocketStream, args *Arguments) error {
 	if args.Num <= 0 {
 		// First authorize with the CC by fetching something
@@ -50,6 +29,21 @@ func sendRecent(stream *wsutil.WebSocketStream, args *Arguments) error {
 		}
 	}
 	return nil
+}
+
+func recentHandlerWs(
+	w http.ResponseWriter, r *http.Request, stream *wsutil.WebSocketStream) {
+	args, err := ParseArguments(r)
+	if err != nil {
+		http.Error(
+			w, fmt.Sprintf("Invalid arguments; %v", err), 400)
+		return
+	}
+
+	if err := sendRecent(stream, args); err != nil {
+		stream.Fatalf("%v", err)
+		return
+	}
 }
 
 func tailHandlerWs(
@@ -95,7 +89,8 @@ func serve() error {
 	r := mux.NewRouter()
 	r.Handle("/v2/apps/{guid}/tail",
 		wsutil.WebSocketHandler(wsutil.HandlerFunc(tailHandlerWs)))
-	r.HandleFunc("/v2/apps/{guid}/recent", recentHandler)
+	r.Handle("/v2/apps/{guid}/recent",
+		wsutil.WebSocketHandler(wsutil.HandlerFunc(recentHandlerWs)))
 
 	http.Handle("/", r)
 	return http.ListenAndServe(addr, nil)

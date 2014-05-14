@@ -53,6 +53,8 @@ func (h *webSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer log.Infof("wsutil.ServeWS finish - %v", getWsConnId(r, ws))
 
 	h.handler.ServeWS(w, r, &WebSocketStream{ws})
+
+	ws.Close()
 }
 
 // XXX: pass this as a log context (gorilla) object
