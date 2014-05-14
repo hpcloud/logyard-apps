@@ -65,30 +65,40 @@ func tailHandler(w http.ResponseWriter, r *http.Request) {
 	tailHandlerWs(r, ws, args)
 }
 
-func tailHandlerWs(
-	r *http.Request, ws *websocket.Conn, args *Arguments) {
-	log.Infof("WS init - %v", getWsConnId(r, ws))
-	defer log.Infof("WS done - %v", getWsConnId(r, ws))
-
-	stream := &WebSocketStream{ws}
-
+func sendRecent(stream *WebSocketStream, args *Arguments) error {
 	if args.Num <= 0 {
 		// First authorize with the CC by fetching something
 		_, err := recentLogs(args.Token, args.GUID, 1)
 		if err != nil {
-			stream.Fatalf("%v", err)
-			return
+			return err
 		}
 	} else {
 		// Recent history requested?
 		recentLogs, err := recentLogs(args.Token, args.GUID, args.Num)
 		if err != nil {
-			stream.Fatalf("%v", err)
-			return
+			return err
 		}
 		for _, line := range recentLogs {
-			stream.Send(line)
+			err = stream.Send(line)
+			if err != nil {
+				return err
+			}
 		}
+	}
+	return nil
+}
+
+func tailHandlerWs(
+	r *http.Request, ws *websocket.Conn, args *Arguments) {
+	// XXX: move this to a handler wrapper
+	log.Infof("WS start - %v", getWsConnId(r, ws))
+	defer log.Infof("WS finish - %v", getWsConnId(r, ws))
+
+	stream := &WebSocketStream{ws}
+
+	if err := sendRecent(stream, args); err != nil {
+		stream.Fatalf("%v", err)
+		return
 	}
 
 	drain, err := NewAppLogDrain(args.GUID)
