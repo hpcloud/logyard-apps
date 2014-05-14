@@ -23,6 +23,27 @@ func getWsConnId(r *http.Request, ws *websocket.Conn) string {
 		r.URL.Path, ws.RemoteAddr(), ws.Subprotocol())
 }
 
+func recentHandler(w http.ResponseWriter, r *http.Request) {
+	log.Infof("%v", r)
+	args, err := ParseArguments(r)
+	if err != nil {
+		http.Error(
+			w, fmt.Sprintf("Invalid arguments; %v", err), 400)
+		return
+	}
+
+	recentLogs, err := recentLogs(args.Token, args.GUID, args.Num)
+	if err != nil {
+		http.Error(
+			w, fmt.Sprintf("%v", err), 500)
+		return
+	}
+	for _, line := range recentLogs {
+		w.Write([]byte(line))
+	}
+
+}
+
 func tailHandler(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -51,23 +72,21 @@ func tailHandlerWs(
 
 	stream := &WebSocketStream{ws}
 
-	// First authorize with the CC by fetching something
-	_, err := recentLogs(args.Token, args.GUID, 1)
-	if err != nil {
-		stream.Fatalf("%v", err)
-		return
-	}
-
-	// Recent history requested?
-	if args.Num > 0 {
+	if args.Num <= 0 {
+		// First authorize with the CC by fetching something
+		_, err := recentLogs(args.Token, args.GUID, 1)
+		if err != nil {
+			stream.Fatalf("%v", err)
+			return
+		}
+	} else {
+		// Recent history requested?
 		recentLogs, err := recentLogs(args.Token, args.GUID, args.Num)
 		if err != nil {
 			stream.Fatalf("%v", err)
 			return
 		}
 		for _, line := range recentLogs {
-			// TODO: make CC return raw log data from apptail as-is
-			// without mangling.
 			stream.Send(line)
 		}
 	}
@@ -99,8 +118,9 @@ func tailHandlerWs(
 func serve() error {
 	addr := fmt.Sprintf(":%d", PORT)
 	r := mux.NewRouter()
+	r.HandleFunc("/v2/apps/{guid}/recent", recentHandler)
 	r.HandleFunc("/v2/apps/{guid}/tail", tailHandler)
-	// r.HandleFunc("/v2/apps/{guid}/recent", recentHandler)
+
 	http.Handle("/", r)
 	return http.ListenAndServe(addr, nil)
 }
