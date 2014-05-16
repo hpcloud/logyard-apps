@@ -30,6 +30,7 @@ log_files:
   avahi_publisher: ""
   cc_jobs: ""
   cloud_controller_ng: ""
+  cloud_controller_upload_server: ""
   config_redis: ""
   dea_ng: ""
   dir_server: ""
