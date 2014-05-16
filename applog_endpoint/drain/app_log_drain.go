@@ -1,8 +1,9 @@
-package main
+package drain
 
 import (
 	"fmt"
 	"github.com/ActiveState/log"
+	"github.com/ActiveState/logyard-apps/applog_endpoint/config"
 	"logyard"
 	"logyard/drain"
 	"logyard/util/lineserver"
@@ -35,7 +36,7 @@ func NewAppLogDrain(appGUID string) (*AppLogDrain, error) {
 	d.appGUID = appGUID
 	d.srv = srv
 	d.port = addr.Port
-	d.lifetime, err = time.ParseDuration(GetConfig().DrainLifetime)
+	d.lifetime, err = time.ParseDuration(config.GetConfig().DrainLifetime)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"Invalid duration value (%v) for drain_lifetime", err)

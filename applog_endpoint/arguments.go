@@ -1,4 +1,4 @@
-package main
+package applog_endpoint
 
 import (
 	"fmt"

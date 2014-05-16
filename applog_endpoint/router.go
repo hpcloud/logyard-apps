@@ -1,4 +1,4 @@
-package main
+package applog_endpoint
 
 import (
 	"github.com/ActiveState/log"
@@ -37,7 +37,7 @@ func routerAdvertise(m interface{}) {
 	NATS.Publish("router.register", info)
 }
 
-func routerMain() {
+func RouterMain() {
 	NATS = server.NewNatsClient(3)
 	routerAdvertise(nil)
 	NATS.Subscribe("router.start", routerAdvertise)

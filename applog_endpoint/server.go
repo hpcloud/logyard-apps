@@ -1,12 +1,16 @@
-package main
+package applog_endpoint
 
 import (
 	"fmt"
 	"github.com/ActiveState/log"
+	"github.com/ActiveState/logyard-apps/applog_endpoint/drain"
 	"github.com/ActiveState/logyard-apps/applog_endpoint/wsutil"
 	"github.com/gorilla/mux"
 	"net/http"
 )
+
+const COMPONENT = "websocket_endpoint"
+const PORT = 5722
 
 func sendRecent(stream *wsutil.WebSocketStream, args *Arguments) error {
 	if args.Num <= 0 {
@@ -58,12 +62,12 @@ func tailHandlerWs(
 		return
 	}
 
-	drain, err := NewAppLogDrain(args.GUID)
+	d, err := drain.NewAppLogDrain(args.GUID)
 	if err != nil {
 		stream.Fatalf("Unable to create drain: %v", err)
 		return
 	}
-	ch, err := drain.Start()
+	ch, err := d.Start()
 	if err != nil {
 		stream.Fatalf("Unable to start drain: %v", err)
 	}
@@ -71,18 +75,18 @@ func tailHandlerWs(
 	err = stream.Forward(ch)
 	if err != nil {
 		log.Infof("%v", err)
-		drain.Stop(err)
+		d.Stop(err)
 	}
 
 	// We expect drain.Wait to not block at this point.
-	if err := drain.Wait(); err != nil {
+	if err := d.Wait(); err != nil {
 		if _, ok := err.(wsutil.WebSocketStreamError); !ok {
 			log.Warnf("Error from app log drain server: %v", err)
 		}
 	}
 }
 
-func serve() error {
+func Serve() error {
 	addr := fmt.Sprintf(":%d", PORT)
 	r := mux.NewRouter()
 	r.Handle("/v2/apps/{guid}/tail",

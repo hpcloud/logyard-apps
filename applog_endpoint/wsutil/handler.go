@@ -16,7 +16,6 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-
 type Handler interface {
 	ServeWS(http.ResponseWriter, *http.Request, *WebSocketStream)
 }
@@ -62,4 +61,3 @@ func getWsConnId(r *http.Request, ws *websocket.Conn) string {
 	return fmt.Sprintf("ws:/%v %v (subprotocol %+v)",
 		r.URL.Path, ws.RemoteAddr(), ws.Subprotocol())
 }
-
