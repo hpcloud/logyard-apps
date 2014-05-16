@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const DRAIN_PREFIX = "tmp.applog_endpoint"
+
 type AppLogDrain struct {
 	appGUID   string
 	srv       *lineserver.LineServer
@@ -43,7 +45,7 @@ func NewAppLogDrain(appGUID string) (*AppLogDrain, error) {
 	}
 	// TODO: name should have an uniq id, to allow multiple taile
 	// sessions for same app.
-	d.drainName = fmt.Sprintf("tmp.websocket_endpoint.%s", d.appGUID)
+	d.drainName = fmt.Sprintf("%s.%s", DRAIN_PREFIX, d.appGUID)
 
 	return d, nil
 }
