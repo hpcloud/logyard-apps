@@ -74,15 +74,19 @@ func (d *AppLogDrain) Start() (chan string, error) {
 }
 
 func (d *AppLogDrain) Stop(reason error) {
-	log.Infof("Stopping drain for reason: %v", reason)
+	log.Infof("Stopping drain %s for reason: %v", d.Id(), reason)
 	if err := d.removeDrain(); err != nil {
-		log.Errorf("Failed to remove drain %v: %v", d.drainName, err)
+		log.Errorf("Failed to remove drain %v: %v", d.Id(), err)
 	}
 	d.srv.Kill(reason)
 }
 
 func (d *AppLogDrain) Wait() error {
 	return d.srv.Wait()
+}
+
+func (d *AppLogDrain) Id() string {
+	return fmt.Sprintf("%s<port:%d>", d.drainName, d.port)
 }
 
 // addDrain adds a logyard drain for the apptail.{appGUID} stream
@@ -107,6 +111,6 @@ func (d *AppLogDrain) addDrain() error {
 
 func (d *AppLogDrain) removeDrain() error {
 	err := logyard.DeleteDrain(d.drainName)
-	log.Infof("Removed drain %v", d.drainName)
+	log.Infof("Removed drain %v", d.Id())
 	return err
 }
