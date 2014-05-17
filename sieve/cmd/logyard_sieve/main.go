@@ -41,11 +41,13 @@ func main() {
 		event, err := parser.Parse(record.Name, record.Text)
 		if err != nil {
 			log.Warnf(
-				"failed to parse event from %s: %s -- source: %s", record.Name, err, record.Text)
+				"failed to parse event from %s: %s -- source: %s",
+				record.Name, err, record.Text)
 			continue
 		}
 		if event != nil {
-			event.MessageCommon = common.NewMessageCommon(event.Desc, time.Unix(record.UnixTime, 0), record.NodeID)
+			event.MessageCommon = common.NewMessageCommon(
+				event.Desc, time.Unix(record.UnixTime, 0), record.NodeID)
 			event.MustPublish(pub)
 		}
 

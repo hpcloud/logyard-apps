@@ -2,8 +2,8 @@ package drain
 
 import (
 	"github.com/ActiveState/log"
-	"strings"
 	"logyard"
+	"strings"
 )
 
 // RemoveOrphanedDrains removes all drains created by applog_endpoint.

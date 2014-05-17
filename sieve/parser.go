@@ -118,7 +118,7 @@ func NewStackatoParser(spec map[string]map[string]EventParserSpec) Parser {
 			parserSpec[process] = map[string]*EventParser{}
 		}
 		for eventName, evt := range d {
-			log.Infof("Loading parse spec %s", eventName)
+			log.Infof("Loading parse spec %s/%s", process, eventName)
 			parserSpec[process][eventName] = evt.ToEventParser()
 		}
 	}
