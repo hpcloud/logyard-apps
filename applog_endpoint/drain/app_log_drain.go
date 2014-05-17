@@ -13,6 +13,9 @@ import (
 
 const DRAIN_PREFIX = "tmp.applog_endpoint"
 
+// UDP can lead to data loss, but that's OK for log streaming.
+const LINESERVER_PROTO = "udp"
+
 type AppLogDrain struct {
 	appGUID   string
 	srv       *lineserver.LineServer
@@ -25,12 +28,13 @@ func NewAppLogDrain(appGUID string) (*AppLogDrain, error) {
 	d := new(AppLogDrain)
 
 	srv, err := lineserver.NewLineServer(
+		LINESERVER_PROTO,
 		fmt.Sprintf("%v:0", server.LocalIPMust()))
 	if err != nil {
 		return nil, err
 	}
 
-	addr, err := srv.GetAddr()
+	addr, err := srv.GetUDPAddr()
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +88,10 @@ func (d *AppLogDrain) Wait() error {
 // addDrain adds a logyard drain for the apptail.{appGUID} stream
 // pointing to ourself (port)
 func (d *AppLogDrain) addDrain() error {
-	uri := fmt.Sprintf("udp://%v:%v", server.LocalIPMust(), d.port)
+	uri := fmt.Sprintf("%s://%v:%v",
+		LINESERVER_PROTO,
+		server.LocalIPMust(),
+		d.port)
 	filter := fmt.Sprintf("apptail.%s", d.appGUID)
 	drainURI, err := drain.ConstructDrainURI(
 		d.drainName, uri, []string{filter}, nil)
