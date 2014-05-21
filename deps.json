@@ -1,7 +1,7 @@
 {
     "github.com/ActiveState/tail": {
         "repo": "http://git-mirrors.activestate.com/github.com/ActiveState/tail.git",
-        "version": "odd_line_splitting",
+        "version": "056d606881d5d9db828efe039128b5c4e0f259cc",
         "type": "git-clone",
         "alias": "github.com/ActiveState/tail"
     },
