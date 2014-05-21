@@ -1,2 +1,2 @@
 ---
-drain_lifetime: "5m"
+drain_lifetime: "10m"
