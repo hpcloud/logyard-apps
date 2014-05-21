@@ -11,7 +11,6 @@ import (
 	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/logyard-apps/sieve"
 	"github.com/ActiveState/tail"
-	"github.com/ActiveState/tail/ratelimiter"
 	"github.com/ActiveState/zmqpubsub"
 	"logyard"
 	"os"
@@ -74,14 +73,7 @@ func (instance *Instance) tailFile(name, filename string, stopCh chan bool) {
 		return
 	}
 
-	lb := GetConfig().RateLimitLeakyBucket
-	interval, err := time.ParseDuration(lb.LeakInterval)
-	if err != nil {
-		log.Errorf("Invalid duration value (%v) for leak_interval -- %v -- using default 2ms",
-			lb.LeakInterval, err)
-		interval = time.Duration(2 * time.Millisecond)
-	}
-	rateLimiter := ratelimiter.NewLeakyBucket(lb.Size, interval)
+	rateLimiter := GetConfig().GetLeakyBucket()
 
 	t, err := tail.TailFile(filename, tail.Config{
 		MaxLineSize: GetConfig().MaxRecordSize,
