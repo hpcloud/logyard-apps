@@ -13,7 +13,7 @@ type leakyBucketConfig struct {
 
 type Config struct {
 	MaxRecordSize     int    `json:"max_record_size"`
-	MaxLinesPerSecond int64  `json:"max_line_per_second"`
+	MaxLinesPerSecond int64  `json:"max_lines_per_second"`
 	MaxLinesBurst     uint16 `json:"max_lines_burst"`
 	FileSizeLimit     int64  `json:"read_limit"`
 }
