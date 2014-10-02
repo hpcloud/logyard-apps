@@ -10,7 +10,7 @@ import (
 	"github.com/alecthomas/gozmq"
 	"logyard"
 	"os"
-	"stackato/server"
+	"github.com/ActiveState/stackato-go/server"
 	"unicode/utf8"
 )
 

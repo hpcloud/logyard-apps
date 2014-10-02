@@ -10,7 +10,7 @@ import (
 	"github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"os"
-	"stackato/server"
+	"github.com/ActiveState/stackato-go/server"
 )
 
 func main() {

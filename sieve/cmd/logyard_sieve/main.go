@@ -8,7 +8,7 @@ import (
 	"github.com/ActiveState/logyard-apps/systail"
 	"github.com/alecthomas/gozmq"
 	"logyard"
-	"stackato/server"
+	"github.com/ActiveState/stackato-go/server"
 	"time"
 )
 

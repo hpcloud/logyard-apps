@@ -4,7 +4,7 @@ import (
 	"github.com/ActiveState/log"
 	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/tail/ratelimiter"
-	"stackato/server"
+	"github.com/ActiveState/stackato-go/server"
 	"time"
 )
 

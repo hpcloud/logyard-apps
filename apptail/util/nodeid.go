@@ -3,7 +3,7 @@ package util
 import (
 	"github.com/ActiveState/log"
 	"github.com/ActiveState/logyard-apps/common"
-	"stackato/server"
+	"github.com/ActiveState/stackato-go/server"
 	"sync"
 )
 

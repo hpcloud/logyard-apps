@@ -8,7 +8,7 @@ import (
 	"github.com/ActiveState/logyard-apps/sieve"
 	"github.com/ActiveState/zmqpubsub"
 	"logyard"
-	"stackato/server"
+	"github.com/ActiveState/stackato-go/server"
 	"time"
 )
 

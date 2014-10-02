@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/ActiveState/log"
-	"stackato/server"
+	"github.com/ActiveState/stackato-go/server"
 )
 
 type Config struct {

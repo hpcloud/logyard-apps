@@ -23,7 +23,7 @@
     },
     "logyard": {
         "repo": "http://git-mirrors.activestate.com/github.com/ActiveState/logyard.git",
-        "version": "fe620fa2856650c85d5294a878df84c33040c89b",
+        "version": "51d0c14887f340ca0603449ab7fddd17e69e41a1",
         "type": "git-clone",
         "alias": "logyard"
     }

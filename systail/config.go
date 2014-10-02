@@ -2,7 +2,7 @@ package systail
 
 import (
 	"github.com/ActiveState/logyard-apps/common"
-	"stackato/server"
+	"github.com/ActiveState/stackato-go/server"
 )
 
 type Config struct {

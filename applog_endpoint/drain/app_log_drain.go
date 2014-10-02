@@ -7,7 +7,7 @@ import (
 	"logyard"
 	"logyard/drain"
 	"logyard/util/lineserver"
-	"stackato/server"
+	"github.com/ActiveState/stackato-go/server"
 	"time"
 )
 

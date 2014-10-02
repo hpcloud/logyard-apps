@@ -3,7 +3,7 @@ package applog_endpoint
 import (
 	"github.com/ActiveState/log"
 	"github.com/apcera/nats"
-	"stackato/server"
+	"github.com/ActiveState/stackato-go/server"
 	"strings"
 )
 

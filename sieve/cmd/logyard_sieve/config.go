@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/ActiveState/log"
 	"github.com/ActiveState/logyard-apps/sieve"
-	"stackato/server"
+	"github.com/ActiveState/stackato-go/server"
 )
 
 type Config struct {
