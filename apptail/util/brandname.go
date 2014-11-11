@@ -19,9 +19,9 @@ func getConfig() *Config {
 
 func loadConfig() {
 	var err error
-	c, err = server.NewConfig("apptail", Config{})
+	c, err = server.NewConfig("cloud_controller_ng", Config{})
 	if err != nil {
-		common.Fatal("Unable to load apptail config; %v", err)
+		common.Fatal("Unable to load cc_ng config; %v", err)
 	}
 }
 
