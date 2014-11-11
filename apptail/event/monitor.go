@@ -42,10 +42,11 @@ func MonitorCloudEvents() {
 		}
 
 		var source string
+		brandname := util.GetBrandName()
 		if t.InstanceIndex > -1 {
-			source = fmt.Sprintf("stackato[%v.%v]", event.Process, t.InstanceIndex)
+			source = fmt.Sprintf("%v[%v.%v]", brandname, event.Process, t.InstanceIndex)
 		} else {
-			source = fmt.Sprintf("stackato[%v]", event.Process)
+			source = fmt.Sprintf("%v[%v]", brandname, event.Process)
 		}
 
 		PublishAppLog(pub, t, source, &event)
