@@ -6,9 +6,9 @@ import (
 	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/logyard-apps/sieve"
 	"github.com/ActiveState/logyard-apps/systail"
+	"github.com/ActiveState/stackato-go/server"
 	"github.com/alecthomas/gozmq"
 	"logyard"
-	"github.com/ActiveState/stackato-go/server"
 	"time"
 )
 

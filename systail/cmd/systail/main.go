@@ -6,11 +6,11 @@ import (
 	"github.com/ActiveState/log"
 	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/logyard-apps/systail"
+	"github.com/ActiveState/stackato-go/server"
 	"github.com/ActiveState/tail"
 	"github.com/alecthomas/gozmq"
 	"logyard"
 	"os"
-	"github.com/ActiveState/stackato-go/server"
 	"unicode/utf8"
 )
 

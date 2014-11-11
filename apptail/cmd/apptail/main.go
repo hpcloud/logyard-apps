@@ -6,11 +6,11 @@ import (
 	"github.com/ActiveState/logyard-apps/apptail/docker"
 	apptail_event "github.com/ActiveState/logyard-apps/apptail/event"
 	"github.com/ActiveState/logyard-apps/common"
+	"github.com/ActiveState/stackato-go/server"
 	"github.com/alecthomas/gozmq"
 	"github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"os"
-	"github.com/ActiveState/stackato-go/server"
 )
 
 func main() {
