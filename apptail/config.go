@@ -3,8 +3,8 @@ package apptail
 import (
 	"github.com/ActiveState/log"
 	"github.com/ActiveState/logyard-apps/common"
-	"github.com/ActiveState/tail/ratelimiter"
 	"github.com/ActiveState/stackato-go/server"
+	"github.com/ActiveState/tail/ratelimiter"
 	"time"
 )
 

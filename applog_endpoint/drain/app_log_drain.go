@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"github.com/ActiveState/log"
 	"github.com/ActiveState/logyard-apps/applog_endpoint/config"
+	"github.com/ActiveState/stackato-go/server"
 	"logyard"
 	"logyard/drain"
 	"logyard/util/lineserver"
-	"github.com/ActiveState/stackato-go/server"
 	"time"
 )
 
