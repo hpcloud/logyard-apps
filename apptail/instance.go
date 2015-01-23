@@ -23,16 +23,16 @@ import (
 
 // Instance is the NATS message sent by dea_ng to notify of new instances.
 type Instance struct {
-	AppGUID  string
-	AppName  string
-	AppSpace string
-	Type     string
-	Index    int
-	DockerId string `json:"docker_id"`
-	RootPath string
-	LogFiles map[string]string
-	Streams  bool
-	pubch    *pubchannel.PubChannel
+	AppGUID       string
+	AppName       string
+	AppSpace      string
+	Type          string
+	Index         int
+	DockerId      string `json:"docker_id"`
+	RootPath      string
+	LogFiles      map[string]string
+	DockerStreams bool `json:"docker_streams"`
+	pubch         *pubchannel.PubChannel
 }
 
 func (instance *Instance) Identifier() string {
@@ -56,7 +56,7 @@ func (instance *Instance) Tail() {
 		go instance.tailFile(name, filename, stopCh)
 	}
 
-	if instance.Streams {
+	if instance.DockerStreams {
 		go instance.tailStream("stdout", stopCh)
 		go instance.tailStream("stderr", stopCh)
 	}
@@ -242,7 +242,7 @@ func (instance *Instance) getLogFiles() map[string]string {
 		logfilesSecure[name] = fullpath
 	}
 
-	if len(logfilesSecure) == 0 && !instance.Streams {
+	if len(logfilesSecure) == 0 && !instance.DockerStreams {
 		instance.SendTimelineEvent("ERROR -- No valid log files detected for tailing")
 	}
 
