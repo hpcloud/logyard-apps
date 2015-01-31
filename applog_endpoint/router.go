@@ -18,9 +18,20 @@ type routerRegisterInfo struct {
 	} `json:"tags"`
 }
 
+type applogEndpointConfigStruct struct {
+	Hostname string `json:"hostname"`
+}
+
 func newRouterRegisterInfo() *routerRegisterInfo {
-	clusterConfig := server.GetClusterConfig()
-	uri := strings.Replace(clusterConfig.Endpoint, "api.", "logs.", 1)
+	var uri string
+	applogEndpointConfig, err := server.NewConfig("applog_endpoint", applogEndpointConfigStruct{})
+	if err == nil {
+		uri = applogEndpointConfig.GetConfig().(*applogEndpointConfigStruct).Hostname
+	}
+	if uri == "" {
+		clusterConfig := server.GetClusterConfig()
+		uri = strings.Replace(clusterConfig.Endpoint, "api.", "logs.", 1)
+	}
 
 	info := new(routerRegisterInfo)
 	info.Host = server.NodeIPMust()
