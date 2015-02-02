@@ -30,4 +30,6 @@ ls $workdir/bin # should see applog_endpoint
 
 # To update:
 
+kato stop
 cp $workdir/bin/applog_endpoint $HOME/stackato/go/bin/applog_endpoint
+kato start
