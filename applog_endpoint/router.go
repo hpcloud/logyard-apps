@@ -2,7 +2,7 @@ package applog_endpoint
 
 import (
 	"github.com/ActiveState/log"
-	"github.com/ActiveState/stackato-go/server"
+	"github.com/ActiveState/logyard-apps/applog_endpoint/config"
 	"github.com/apcera/nats"
 	"strings"
 )
@@ -22,21 +22,20 @@ type applogEndpointConfigStruct struct {
 	Hostname string `json:"hostname"`
 }
 
-func newRouterRegisterInfo() *routerRegisterInfo {
-	var uri string
-	applogEndpointConfig, err := server.NewConfig("applog_endpoint", applogEndpointConfigStruct{})
-	if err == nil {
-		uri = applogEndpointConfig.GetConfig().(*applogEndpointConfigStruct).Hostname
-	}
+func getApplogEndpointUri() string {
+	uri := config.GetConfig().Hostname
 	if uri == "" {
-		clusterConfig := server.GetClusterConfig()
+		clusterConfig := config.GetClusterConfig()
 		uri = strings.Replace(clusterConfig.Endpoint, "api.", "logs.", 1)
 	}
+	return uri
+}
 
+func newRouterRegisterInfo() *routerRegisterInfo {
 	info := new(routerRegisterInfo)
-	info.Host = server.NodeIPMust()
+	info.Host = config.NodeIPMust()
 	info.Port = PORT
-	info.URIs = []string{uri}
+	info.URIs = []string{getApplogEndpointUri()}
 	info.Tags.Component = COMPONENT
 	return info
 }
@@ -49,7 +48,7 @@ func routerAdvertise(m interface{}) {
 }
 
 func RouterMain() {
-	NATS = server.NewNatsClient(3)
+	NATS = config.NewNatsClient(3)
 	routerAdvertise(nil)
 	NATS.Subscribe("router.start", routerAdvertise)
 }
