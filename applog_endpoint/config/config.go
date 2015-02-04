@@ -2,14 +2,14 @@ package config
 
 import (
 	"github.com/ActiveState/log"
-	"github.com/ActiveState/stackato-go/server"
 )
 
 type Config struct {
 	DrainLifetime string `json:"drain_lifetime"`
+	Hostname      string `json:"hostname"`
 }
 
-var c *server.Config
+var c *ServerConfig
 
 func GetConfig() *Config {
 	return c.GetConfig().(*Config)
@@ -17,7 +17,7 @@ func GetConfig() *Config {
 
 func LoadConfig() {
 	var err error
-	c, err = server.NewConfig("applog_endpoint", Config{})
+	c, err = NewConfig("applog_endpoint", Config{})
 	if err != nil {
 		log.Fatal("Unable to load applog_endpoint config; %v", err)
 	}
