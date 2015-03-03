@@ -55,7 +55,7 @@ repos:
 compile:	$(BUILDGOROOT)
 	GOPATH=$(BUILDGOPATH) GOROOT=/usr/local/go go install $(GOARGS) $(NAME)/...
 
-install:	
+install:
 	mkdir -p $(INSTGOPATH)/$(SRCDIR)
 	rsync -a $(BUILDGOPATH)/$(SRCDIR)/etc/*.yml $(INSTGOPATH)/$(SRCDIR)/etc/
 	rsync -a $(BUILDGOPATH)/bin $(INSTGOPATH)
@@ -67,6 +67,19 @@ clean:	$(BUILDGOROOT)
 	GOPATH=$(BUILDGOPATH) GOROOT=/usr/local/go go clean
 
 # For developer use.
+
+all-local: repos-local compile-local
+
+repos-local:
+	mkdir -p $(BUILDGOPATH)/src/$(NAME)
+	git archive HEAD | tar -x -C $(BUILDGOPATH)/src/$(NAME)
+	GOPATH=$(BUILDGOPATH) GOROOT=${GOROOT} go get -v github.com/vube/depman
+	GOPATH=$(BUILDGOPATH) GOROOT=${GOROOT} depman
+	rm -f $(BUILDGOPATH)/bin/depman
+
+
+compile-local:	$(BUILDGOROOT)
+	GOPATH=$(BUILDGOPATH) GOROOT=${GOROOT} go install $(GOARGS) $(NAME)/...
 
 dev-install:	fmt dev-installall
 
@@ -80,4 +93,4 @@ fmt:
 	gofmt -w .
 
 dev-test:
-	go test $(GOARGS) $(GOARGS_TEST) $(NAME)/... 
+	go test $(GOARGS) $(GOARGS_TEST) $(NAME)/...
