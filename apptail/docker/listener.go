@@ -4,6 +4,7 @@ import (
 	"github.com/ActiveState/log"
 	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/logyard-apps/docker_events"
+	"runtime"
 	"sync"
 )
 
@@ -33,12 +34,19 @@ func (l *dockerListener) BlockUntilContainerStops(id string) {
 	// Add a wait channel
 	func() {
 		l.mux.Lock()
-		defer l.mux.Unlock()
-		if _, ok := l.waiters[id]; ok {
-			panic("already added")
+		if _, key_exist := l.waiters[id]; key_exist {
+			// important to signal chanel close to other routines or else deadlock
+			close(ch)
+			log.Warnf("already added id: %s", id)
+
+		} else {
+			l.waiters[id] = ch
 		}
-		l.waiters[id] = ch
+
 		total = len(l.waiters)
+		l.mux.Unlock()
+
+		runtime.Gosched()
 	}()
 
 	// Wait
