@@ -4,8 +4,8 @@ import (
 	"github.com/ActiveState/log"
 	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/logyard-apps/docker_events"
-	"sync"
 	"runtime"
+	"sync"
 )
 
 const ID_LENGTH = 12
@@ -35,12 +35,17 @@ func (l *dockerListener) BlockUntilContainerStops(id string) {
 	func() {
 		l.mux.Lock()
 		if _, key_exist := l.waiters[id]; key_exist {
-			log.Fatal("already added.")
-			
+			// important to signal chanel close to other routines or else deadlock
+			close(ch)
+			log.Warnf("already added id: %s", id)
+
+		} else {
+			l.waiters[id] = ch
 		}
-		l.waiters[id] = ch
+
 		total = len(l.waiters)
 		l.mux.Unlock()
+
 		runtime.Gosched()
 	}()
 
@@ -48,7 +53,6 @@ func (l *dockerListener) BlockUntilContainerStops(id string) {
 	log.Infof("Waiting for container %v to exit (total waiters: %d)", id, total)
 	<-ch
 }
-
 
 func (l *dockerListener) Listen() {
 	for evt := range docker_events.Stream() {
