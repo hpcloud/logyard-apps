@@ -8,9 +8,13 @@ import (
 	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/stackato-go/server"
 	"github.com/alecthomas/gozmq"
-	"github.com/nu7hatch/gouuid"
+	"github.com/apcera/nats"
+	uuid "github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"os"
+	"runtime"
+	"sync"
+	"time"
 )
 
 func main() {
@@ -25,18 +29,63 @@ func main() {
 
 	natsclient := server.NewNatsClient(3)
 
-	natsclient.Subscribe("logyard."+uid+".newinstance", func(instance *apptail.Instance) {
-		instance.Tail()
-	})
+	var state = make(map[string]string)
+	var mutex = sync.Mutex{}
 
-	natsclient.Publish("logyard."+uid+".start", []byte("{}"))
-	log.Infof("Waiting for app instances ...")
+	var key_exist bool
 
-	go docker.DockerListener.Listen()
+	mutex.Lock()
+	if _, key_exist = state[uid]; !key_exist {
+		state[uid] = time.Now().Local().Format(time.RFC3339)
+	}
+	log.Infof("registered instances with nats: %s", state)
+	mutex.Unlock()
+	runtime.Gosched()
 
-	server.MarkRunning("apptail")
+	if !key_exist {
 
-	apptail_event.MonitorCloudEvents()
+		natsclient.Subscribe("logyard."+uid+".newinstance", func(instance *apptail.Instance) {
+			instance.Tail()
+		})
+
+		natsclient.Publish("logyard."+uid+".start", []byte("{}"))
+
+		log.Infof("Waiting for app instances ...")
+
+		go docker.DockerListener.Listen()
+
+		server.MarkRunning("apptail")
+
+		apptail_event.MonitorCloudEvents()
+	} else {
+		log.Infof("already subscribed to nats :", uid)
+
+	}
+}
+
+func track(uid string, state map[string]string, mux sync.Mutex, natsclient *nats.EncodedConn) (wait <-chan struct{}) {
+	instance_name := "logyard." + uid + ".newinstance"
+
+	ch := make(chan struct{})
+	mux.Lock()
+	_, Key_exist := state[uid]
+	mux.Unlock()
+	runtime.Gosched()
+	if !Key_exist {
+
+		natsclient.Subscribe(instance_name, func(instance *apptail.Instance) {
+			instance.Tail()
+		})
+
+		natsclient.Publish("logyard."+uid+".start", []byte("{}"))
+
+	} else {
+		close(ch)
+
+	}
+
+	return ch
+
 }
 
 // getUID returns the UID of the aggregator running on this node. the UID is
