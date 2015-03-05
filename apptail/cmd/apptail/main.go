@@ -8,9 +8,10 @@ import (
 	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/stackato-go/server"
 	"github.com/alecthomas/gozmq"
-	"github.com/nu7hatch/gouuid"
+	uuid "github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"os"
+	"sync"
 )
 
 func main() {
@@ -25,8 +26,29 @@ func main() {
 
 	natsclient := server.NewNatsClient(3)
 
+	mux := &sync.Mutex{}
+
+	n := 0
+	started_instances := make(map[string]int)
+
 	natsclient.Subscribe("logyard."+uid+".newinstance", func(instance *apptail.Instance) {
-		instance.Tail()
+		n++
+		mux.Lock()
+		_, key_exist := started_instances[instance.DockerId]
+		mux.Unlock()
+
+		if !key_exist {
+			mux.Lock()
+			started_instances[instance.DockerId] = n
+			mux.Unlock()
+			go func() {
+				instance.Tail()
+				mux.Lock()
+				delete(started_instances, instance.DockerId)
+				log.Info("available instances: ", started_instances)
+				mux.Unlock()
+			}()
+		}
 	})
 
 	natsclient.Publish("logyard."+uid+".start", []byte("{}"))
