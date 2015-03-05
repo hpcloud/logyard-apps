@@ -68,7 +68,7 @@ clean:	$(BUILDGOROOT)
 
 # For developer use.
 
-all-local: repos-local compile-local
+all-local: fmt repos-local compile-local
 
 repos-local:
 	mkdir -p $(BUILDGOPATH)/src/$(NAME)

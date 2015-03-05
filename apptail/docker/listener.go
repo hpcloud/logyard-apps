@@ -34,19 +34,16 @@ func (l *dockerListener) BlockUntilContainerStops(id string) {
 	// Add a wait channel
 	func() {
 		l.mux.Lock()
-		_, ok := l.waiters[id]
-		l.mux.Unlock()
-		runtime.Gosched()
-		if ok {
+		if _, ok := l.waiters[id]; ok {
 			log.Warn("already added")
 
 		} else {
-			l.mux.Lock()
-			l.waiters[id] = ch
-			l.mux.Unlock()
-			runtime.Gosched()
-		}
 
+			l.waiters[id] = ch
+
+		}
+		l.mux.Unlock()
+		runtime.Gosched()
 		total = len(l.waiters)
 	}()
 
