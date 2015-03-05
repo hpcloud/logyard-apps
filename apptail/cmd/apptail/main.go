@@ -29,13 +29,13 @@ func main() {
 	started_instances := make(map[string]int)
 
 	natsclient.Subscribe("logyard."+uid+".newinstance", func(instance *apptail.Instance) {
-		n++
+			n++
 
-		if _, key_exist := started_instances[instance.DockerId]; !key_exist {
-			started_instances[instance.DockerId] = n
-			instance.Tail()
-		}
-	})
+			if _, key_exist := started_instances[instance.DockerId]; !key_exist {
+				started_instances[instance.DockerId] = n
+				instance.Tail()
+			}
+		})
 
 	natsclient.Publish("logyard."+uid+".start", []byte("{}"))
 	log.Infof("Waiting for app instances ...")
