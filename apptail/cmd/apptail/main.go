@@ -5,16 +5,23 @@ import (
 	"github.com/ActiveState/logyard-apps/apptail"
 	"github.com/ActiveState/logyard-apps/apptail/docker"
 	apptail_event "github.com/ActiveState/logyard-apps/apptail/event"
+	"github.com/ActiveState/logyard-apps/apptail/storage"
 	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/stackato-go/server"
 	"github.com/alecthomas/gozmq"
-	"github.com/nu7hatch/gouuid"
+	uuid "github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"os"
 )
 
 func main() {
 	go common.RegisterTailCleanup()
+
+	fstorage := storage.NewFileStorage()
+	tracker := storage.NewTracker(fstorage)
+
+	log.Infof("Old tails: ", tracker.LoadTailers())
+
 	major, minor, patch := gozmq.Version()
 	log.Infof("Starting apptail (zeromq %d.%d.%d)", major, minor, patch)
 

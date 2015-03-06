@@ -19,6 +19,10 @@ import (
 	"time"
 )
 
+var (
+	Path = fmt.Sprintf("%s/.apptail.gob", os.Getenv("HOME"))
+)
+
 // Instance is the NATS message sent by dea_ng to notify of new instances.
 type Instance struct {
 	AppGUID  string
@@ -49,15 +53,40 @@ func (instance *Instance) Tail() {
 
 	log.Infof("Determined log files: %+v", logfiles)
 
+	//var logs map[string]string
+	//logs = make(map[string]string)
 	for name, filename := range logfiles {
+		//	logs[filename] = name
 		go instance.tailFile(name, filename, stopCh)
+
 	}
 
+	//mux := &sync.Mutex{}
+	//fstorage := storage.New(Path)
+
 	go func() {
+		//	mux.Lock()
+		//	log.Info("inserting the following in cached tails:", instance.DockerId)
+		//	cachedTails.IsLive = true // we need to update this at some point to indicate the nodes that never came up
+		//	cachedTails.Instances[instance.DockerId] = logs
+		//	fstorage.Write(cachedTails)
+		//	mux.Unlock()
+
+		//this might be a good place to update
 		docker.DockerListener.BlockUntilContainerStops(instance.DockerId)
 		log.Infof("Container for %v exited", instance.Identifier())
+		// this is where we are going to remove from the map
+		//	mux.Lock()
+		//	log.Info("removeing the following from cached tails:",instance.DockerId)
+		//	delete(cachedTails.Instances, instance.DockerId)
+		//	log.Info(cachedTails.Instances)
+		//	log.Infof("%d-----%s",len(cachedTails.Instances), cachedTails.Instances)
+		//	mux.Unlock()
 		close(stopCh)
+
 	}()
+	// todo: this is where the last update should happen
+	log.Info("-----------------------THIS IS CALLED--------------------------------")
 }
 
 func (instance *Instance) tailFile(name, filename string, stopCh chan bool) {
@@ -83,6 +112,7 @@ func (instance *Instance) tailFile(name, filename string, stopCh chan bool) {
 		ReOpen:      false,
 		Poll:        false,
 		RateLimiter: rateLimiter})
+
 	if err != nil {
 		log.Warnf("Cannot tail file (%s); %s", filename, err)
 		instance.SendTimelineEvent("ERROR -- Cannot tail file (%s); %s", name, err)
@@ -108,6 +138,9 @@ FORLOOP:
 		log.Warn(err)
 		instance.SendTimelineEvent("WARN -- Error tailing file (%s); %s", name, err)
 	}
+
+	o, _ := t.Tell()
+	log.Infof("----------%d--------------", o)
 
 	log.Infof("Completed tailing %v log for %v", name, instance.Identifier())
 }

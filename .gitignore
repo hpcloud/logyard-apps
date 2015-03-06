@@ -1,0 +1,38 @@
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+
+# make path
+.gopath
+
+# compiledfiles
+apptail/cmd/apptail/apptail
+systail/cmd/systail/systail
+docker_events/cmd/docker_events/docker_events
+applog_endpoint/cmd/applog_endpoint/applog_endpoint
+
+# Folders
+_obj
+_test
+
+# Architecture specific extensions/prefixes
+*.[568vq]
+[568vq].out
+
+*.cgo1.go
+*.cgo2.c
+_cgo_defun.c
+_cgo_gotypes.go
+_cgo_export.*
+
+_testmain.go
+
+*.exe
+*.test
+*.prof
+
+# ide stuff
+.idea/
+*.iml
+*.iws
