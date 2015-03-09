@@ -9,12 +9,15 @@ import (
 )
 
 type Tracker interface {
-	Update(key string, tailNode *TailNode)
+	Update(key string, childKey string, childVal int64)
 	LoadTailers() *Tailer
 	Remove(key string)
+	Status() map[string]TailNode
+	RegisterInstance(instKey string)
+	InitializeChildNode(instKey string, childkey string)
 }
 
-type TailNode map[string]string
+type TailNode map[string]int64
 
 type Tailer struct {
 	IsLive    bool
@@ -41,6 +44,11 @@ func NewTracker(s Storage) Tracker {
 	}
 }
 
+func(t *tracker) Status() map[string]TailNode{
+	return t.Cached.Instances
+	
+}
+
 func (t *tracker) LoadTailers() *Tailer {
 	t.mux.Lock()
 	t.storage.Load(&t.Cached)
@@ -50,15 +58,48 @@ func (t *tracker) LoadTailers() *Tailer {
 	return t.Cached
 }
 
-func (t *tracker) Update(key string, tailNode *TailNode) {
-	log.Info("Inserting the following key:", key)
+
+func (t *tracker) RegisterInstance(instKey string){
 	t.mux.Lock()
-	t.Cached.IsLive = true
-	t.Cached.Instances[key] = (*tailNode)
-	t.storage.Write(t.Cached)
+	if _, instance_exist := t.Cached.Instances[instKey]; !instance_exist{
+		t.Cached.IsLive = true
+		t.Cached.Instances[instKey] = TailNode{}
+		
+	}
+	t.mux.Unlock()
+	runtime.Gosched()
+	
+}
+
+func(t *tracker) InitializeChildNode(instKey string, childkey string){
+	t.mux.Lock()
+	if _, instance_exist := t.Cached.Instances[instKey]; instance_exist{
+		tailNode := t.Cached.Instances[instKey]
+		if _, childNode_exist := tailNode[childkey]; !childNode_exist{
+			tailNode[childkey] = 0
+			t.Cached.Instances[instKey] = tailNode
+		}
+
+	}
 	t.mux.Unlock()
 	runtime.Gosched()
 }
+
+func (t *tracker) Update(instKey string, childKey string, childVal int64){
+	t.mux.Lock()
+	if _, instance_exist := t.Cached.Instances[instKey]; instance_exist{
+		tailNode := t.Cached.Instances[instKey]
+		if _, childNode_exist := tailNode[childKey]; childNode_exist{
+			tailNode[childKey] = childVal
+			t.Cached.Instances[instKey] = tailNode
+		}
+		
+	}
+	t.mux.Unlock()
+	runtime.Gosched()
+	
+}
+
 
 func (t *tracker) Remove(key string) {
 	log.Info("Removing the following key:", key)

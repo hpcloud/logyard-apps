@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"github.com/ActiveState/logyard-apps/apptail/storage"
 )
 
 var (
@@ -41,7 +42,7 @@ func (instance *Instance) Identifier() string {
 }
 
 // Tail begins tailing the files for this instance.
-func (instance *Instance) Tail() {
+func (instance *Instance) Tail(tracker storage.Tracker) {
 	log.Infof("Tailing %v logs for %v -- %+v",
 		instance.Type, instance.Identifier(), instance)
 
@@ -53,43 +54,26 @@ func (instance *Instance) Tail() {
 
 	log.Infof("Determined log files: %+v", logfiles)
 
-	//var logs map[string]string
-	//logs = make(map[string]string)
+	tracker.RegisterInstance(instance.DockerId)
 	for name, filename := range logfiles {
-		//	logs[filename] = name
-		go instance.tailFile(name, filename, stopCh)
-
+		tracker.InitializeChildNode(instance.DockerId, filename)
+		go instance.tailFile(name, filename, stopCh, tracker)
 	}
 
-	//mux := &sync.Mutex{}
-	//fstorage := storage.New(Path)
 
 	go func() {
-		//	mux.Lock()
-		//	log.Info("inserting the following in cached tails:", instance.DockerId)
-		//	cachedTails.IsLive = true // we need to update this at some point to indicate the nodes that never came up
-		//	cachedTails.Instances[instance.DockerId] = logs
-		//	fstorage.Write(cachedTails)
-		//	mux.Unlock()
-
-		//this might be a good place to update
 		docker.DockerListener.BlockUntilContainerStops(instance.DockerId)
 		log.Infof("Container for %v exited", instance.Identifier())
-		// this is where we are going to remove from the map
-		//	mux.Lock()
-		//	log.Info("removeing the following from cached tails:",instance.DockerId)
-		//	delete(cachedTails.Instances, instance.DockerId)
-		//	log.Info(cachedTails.Instances)
-		//	log.Infof("%d-----%s",len(cachedTails.Instances), cachedTails.Instances)
-		//	mux.Unlock()
+		tracker.Remove(instance.DockerId)
 		close(stopCh)
 
 	}()
 	// todo: this is where the last update should happen
 	log.Info("-----------------------THIS IS CALLED--------------------------------")
+	log.Info(tracker.Status())
 }
 
-func (instance *Instance) tailFile(name, filename string, stopCh chan bool) {
+func (instance *Instance) tailFile(name, filename string, stopCh chan bool, tracker storage.Tracker) {
 	var err error
 
 	pub := logyard.Broker.NewPublisherMust()
@@ -127,6 +111,14 @@ FORLOOP:
 				err = t.Wait()
 				break FORLOOP
 			}
+			location, err := t.Tell()
+			if err != nil{
+				log.Error(err.Error())
+
+			}
+			tracker.Update(instance.DockerId, filename, location)
+			
+			log.Info(tracker.Status())
 			instance.publishLine(pub, name, line)
 		case <-stopCh:
 			err = t.Stop()
@@ -139,8 +131,7 @@ FORLOOP:
 		instance.SendTimelineEvent("WARN -- Error tailing file (%s); %s", name, err)
 	}
 
-	o, _ := t.Tell()
-	log.Infof("----------%d--------------", o)
+
 
 	log.Infof("Completed tailing %v log for %v", name, instance.Identifier())
 }
