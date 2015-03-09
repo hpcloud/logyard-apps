@@ -8,10 +8,14 @@ import (
 	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/stackato-go/server"
 	"github.com/alecthomas/gozmq"
-	"github.com/nu7hatch/gouuid"
+	uuid "github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"os"
+	"runtime"
+	"sync"
 )
+
+type StartedInstance map[string]int
 
 func main() {
 	go common.RegisterTailCleanup()
@@ -25,8 +29,19 @@ func main() {
 
 	natsclient := server.NewNatsClient(3)
 
+	mux := &sync.Mutex{}
+
+	n := 0
+	started_instances := StartedInstance{}
+
 	natsclient.Subscribe("logyard."+uid+".newinstance", func(instance *apptail.Instance) {
-		instance.Tail()
+		n++
+		if started_instances.checkInstanceAndUpdate(n, instance.DockerId, mux) {
+			go func() {
+				instance.Tail()
+				started_instances.delete(instance.DockerId, mux)
+			}()
+		}
 	})
 
 	natsclient.Publish("logyard."+uid+".start", []byte("{}"))
@@ -37,6 +52,31 @@ func main() {
 	server.MarkRunning("apptail")
 
 	apptail_event.MonitorCloudEvents()
+}
+
+func (s *StartedInstance) checkInstanceAndUpdate(n int, dockerId string, mux *sync.Mutex) bool {
+	var exist bool
+	mux.Lock()
+
+	if _, key_exist := (*s)[dockerId]; !key_exist {
+		(*s)[dockerId] = n
+		log.Info("all available instances:", (*s))
+		exist = true
+	} else {
+		exist = false
+
+	}
+	mux.Unlock()
+	runtime.Gosched()
+	return exist
+}
+
+func (s *StartedInstance) delete(dockerId string, mux *sync.Mutex) {
+	mux.Lock()
+	delete((*s), dockerId)
+	log.Info("available instances: ", (*s))
+	mux.Unlock()
+	runtime.Gosched()
 }
 
 // getUID returns the UID of the aggregator running on this node. the UID is
