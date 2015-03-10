@@ -55,24 +55,41 @@ func (instance *Instance) Tail(tracker storage.Tracker) {
 	log.Infof("Determined log files: %+v", logfiles)
 
 	tracker.RegisterInstance(instance.DockerId)
+
 	for name, filename := range logfiles {
-		tracker.InitializeChildNode(instance.DockerId, filename)
 		go instance.tailFile(name, filename, stopCh, tracker)
+		
 	}
-
-
+	
 	go func() {
 		docker.DockerListener.BlockUntilContainerStops(instance.DockerId)
 		log.Infof("Container for %v exited", instance.Identifier())
 		tracker.Remove(instance.DockerId)
 		close(stopCh)
-
 	}()
-	// todo: this is where the last update should happen
-	log.Info("-----------------------THIS IS CALLED--------------------------------")
-	log.Info(tracker.Status())
+	log.Info("THIS IS APPTAIL RESTART")
+	
+	//tracker.Submit()
+	//log.Info("This is called from outside-----------------------------------------", tracker.Status())
+}
+/*
+func callStop(stopChn chan bool){
+	stopChn <- true
+	
 }
 
+func callTracker(stopChn chan bool, tracker storage.Tracker){
+	for{
+		select {
+		case <- stopChn:
+			tracker.Submit()
+			tracker.Status()
+		}
+		
+	}
+	
+}
+*/
 func (instance *Instance) tailFile(name, filename string, stopCh chan bool, tracker storage.Tracker) {
 	var err error
 
@@ -80,6 +97,8 @@ func (instance *Instance) tailFile(name, filename string, stopCh chan bool, trac
 	defer pub.Stop()
 
 	limit, err := instance.getReadLimit(pub, name, filename)
+
+	
 	if err != nil {
 		log.Warn(err)
 		instance.SendTimelineEvent("WARN -- %v", err)
@@ -97,6 +116,7 @@ func (instance *Instance) tailFile(name, filename string, stopCh chan bool, trac
 		Poll:        false,
 		RateLimiter: rateLimiter})
 
+	tracker.InitializeChildNode(instance.DockerId, filename, t.Location.Offset)
 	if err != nil {
 		log.Warnf("Cannot tail file (%s); %s", filename, err)
 		instance.SendTimelineEvent("ERROR -- Cannot tail file (%s); %s", name, err)
@@ -111,27 +131,24 @@ FORLOOP:
 				err = t.Wait()
 				break FORLOOP
 			}
-			location, err := t.Tell()
+			currentOffset, err := t.Tell()
 			if err != nil{
 				log.Error(err.Error())
 
 			}
-			tracker.Update(instance.DockerId, filename, location)
-			
-			log.Info(tracker.Status())
+			tracker.Update(instance.DockerId, filename, currentOffset)
+
 			instance.publishLine(pub, name, line)
 		case <-stopCh:
 			err = t.Stop()
 			break FORLOOP
 		}
 	}
-
+	
 	if err != nil {
 		log.Warn(err)
 		instance.SendTimelineEvent("WARN -- Error tailing file (%s); %s", name, err)
 	}
-
-
 
 	log.Infof("Completed tailing %v log for %v", name, instance.Identifier())
 }

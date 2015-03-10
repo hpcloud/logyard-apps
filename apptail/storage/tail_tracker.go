@@ -10,18 +10,19 @@ import (
 
 type Tracker interface {
 	Update(key string, childKey string, childVal int64)
-	LoadTailers() *Tailer
+	LoadTailers()
 	Remove(key string)
-	Status() map[string]TailNode
+	Status()
 	RegisterInstance(instKey string)
-	InitializeChildNode(instKey string, childkey string)
+	InitializeChildNode(instKey string, childkey string, offSet int64)
+	Submit()
 }
 
 type TailNode map[string]int64
 
 type Tailer struct {
 	IsLive    bool
-	Instances map[string]TailNode
+	Instances map[string]TailNode // maybe a pointer
 }
 
 type tracker struct {
@@ -44,40 +45,34 @@ func NewTracker(s Storage) Tracker {
 	}
 }
 
-func(t *tracker) Status() map[string]TailNode{
-	return t.Cached.Instances
-	
-}
-
-func (t *tracker) LoadTailers() *Tailer {
+func(t *tracker) Status(){
 	t.mux.Lock()
-	t.storage.Load(&t.Cached)
-	log.Info("loaded the following tailers from previous session:", t.Cached.Instances)
+	log.Info("---DEBUG---", t.Cached.Instances)
+
 	t.mux.Unlock()
 	runtime.Gosched()
-	return t.Cached
 }
-
 
 func (t *tracker) RegisterInstance(instKey string){
 	t.mux.Lock()
 	if _, instance_exist := t.Cached.Instances[instKey]; !instance_exist{
 		t.Cached.IsLive = true
 		t.Cached.Instances[instKey] = TailNode{}
-		
+		log.Info("[RegisterInstance]Current status : ", t.Cached.Instances)
 	}
 	t.mux.Unlock()
 	runtime.Gosched()
 	
 }
 
-func(t *tracker) InitializeChildNode(instKey string, childkey string){
+func(t *tracker) InitializeChildNode(instKey string, childkey string, offSet int64){
 	t.mux.Lock()
 	if _, instance_exist := t.Cached.Instances[instKey]; instance_exist{
 		tailNode := t.Cached.Instances[instKey]
 		if _, childNode_exist := tailNode[childkey]; !childNode_exist{
-			tailNode[childkey] = 0
+			tailNode[childkey] = offSet
 			t.Cached.Instances[instKey] = tailNode
+			log.Info("[InitializeChildNode]Current status : ", t.Cached.Instances)
 		}
 
 	}
@@ -90,21 +85,40 @@ func (t *tracker) Update(instKey string, childKey string, childVal int64){
 	if _, instance_exist := t.Cached.Instances[instKey]; instance_exist{
 		tailNode := t.Cached.Instances[instKey]
 		if _, childNode_exist := tailNode[childKey]; childNode_exist{
+			
 			tailNode[childKey] = childVal
 			t.Cached.Instances[instKey] = tailNode
+			//log.Info("[Update]Current status : ", t.Cached.Instances)
 		}
 		
 	}
 	t.mux.Unlock()
 	runtime.Gosched()
-	
 }
 
+func (t *tracker) LoadTailers(){
+	t.mux.Lock()
+	t.storage.Load(&t.Cached)
+	log.Info("[LoadTailers]Loaded the following tailers from previous session:", t.Cached.Instances)
+	t.mux.Unlock()
+	runtime.Gosched()
+}
 
-func (t *tracker) Remove(key string) {
+func(t *tracker) Submit(){
+	t.mux.Lock()
+	log.Info("Storing the offset in the following instances:", t.Cached.Instances)
+	t.storage.Write(t.Cached)
+	log.Info("[Submit]Current status : ", t.Cached.Instances)
+	t.mux.Unlock()
+	runtime.Gosched()
+}
+
+func(t *tracker) Remove(key string) {
 	log.Info("Removing the following key:", key)
+
 	t.mux.Lock()
 	delete(t.Cached.Instances, key)
+	log.Info("[Remove]Current status : ", t.Cached.Instances)
 	t.mux.Unlock()
 	runtime.Gosched()
 

@@ -19,8 +19,7 @@ func main() {
 
 	fstorage := storage.NewFileStorage()
 	tracker := storage.NewTracker(fstorage)
-
-	log.Infof("Old tails: ", tracker.LoadTailers())
+	tracker.LoadTailers()
 
 	major, minor, patch := gozmq.Version()
 	log.Infof("Starting apptail (zeromq %d.%d.%d)", major, minor, patch)
