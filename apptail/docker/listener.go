@@ -21,7 +21,7 @@ func init() {
 	DockerListener.waiters = make(map[string]chan bool)
 }
 
-func (l *dockerListener) BlockUntilContainerStops(id string) {
+func (l *dockerListener) BlockUntilContainerStops(id string, commitChan chan bool) {
 	var total int
 	ch := make(chan bool)
 	id = id[:ID_LENGTH]
@@ -35,6 +35,7 @@ func (l *dockerListener) BlockUntilContainerStops(id string) {
 		l.mux.Lock()
 		defer l.mux.Unlock()
 		if _, ok := l.waiters[id]; ok {
+			commitChan <- true
 			panic("already added")
 		}
 		l.waiters[id] = ch

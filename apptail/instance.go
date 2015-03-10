@@ -47,7 +47,10 @@ func (instance *Instance) Tail(tracker storage.Tracker) {
 		instance.Type, instance.Identifier(), instance)
 
 	stopCh := make(chan bool)
-
+	commitChan := tracker.GetCommitChan()
+	//updateChan := tracker.GetUpdateChan()
+	removeChan := tracker.GetRemoveChan()
+	
 	instance.pubch = pubchannel.New("event.timeline", stopCh)
 
 	logfiles := instance.getLogFiles()
@@ -62,37 +65,28 @@ func (instance *Instance) Tail(tracker storage.Tracker) {
 	}
 	
 	go func() {
-		docker.DockerListener.BlockUntilContainerStops(instance.DockerId)
+		docker.DockerListener.BlockUntilContainerStops(instance.DockerId, commitChan)
 		log.Infof("Container for %v exited", instance.Identifier())
-		tracker.Remove(instance.DockerId)
 		close(stopCh)
+		log.Info("we got here-----------------------")
+		removeChan <-instance.DockerId
 	}()
+	
+	
 	log.Info("THIS IS APPTAIL RESTART")
-	
-	//tracker.Submit()
-	//log.Info("This is called from outside-----------------------------------------", tracker.Status())
-}
-/*
-func callStop(stopChn chan bool){
-	stopChn <- true
-	
+	/*
+	go func() {
+		commitChan <- true
+	}()
+
+	go func() {
+		updateChan <- true
+	}()*/
 }
 
-func callTracker(stopChn chan bool, tracker storage.Tracker){
-	for{
-		select {
-		case <- stopChn:
-			tracker.Submit()
-			tracker.Status()
-		}
-		
-	}
-	
-}
-*/
 func (instance *Instance) tailFile(name, filename string, stopCh chan bool, tracker storage.Tracker) {
 	var err error
-
+	
 	pub := logyard.Broker.NewPublisherMust()
 	defer pub.Stop()
 
