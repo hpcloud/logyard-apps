@@ -3,7 +3,6 @@ package storage
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
 	"github.com/ActiveState/log"
 	"io/ioutil"
 	"os"
@@ -19,13 +18,9 @@ type FileStorage struct {
 	file_path string
 }
 
-var (
-	path = fmt.Sprintf("%s/.apptail.gob", os.Getenv("HOME"))
-)
-
 const FILE_MODE = 0666
 
-func NewFileStorage() Storage {
+func NewFileStorage(path string) Storage {
 	return &FileStorage{file_path: path}
 
 }
@@ -43,7 +38,7 @@ func (s *FileStorage) Write(data interface{}) {
 		log.Error(err)
 
 	}
-
+	// this extra step to make the file accessible by stackato user
 	if err = os.Chmod(s.file_path, FILE_MODE); err != nil {
 		log.Error(err)
 
