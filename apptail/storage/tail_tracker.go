@@ -1,11 +1,11 @@
 package storage
 
 import (
-	"runtime"
-	"fmt"
 	"github.com/ActiveState/log"
-	"os"
+	"runtime"
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 type Tracker interface {
@@ -15,29 +15,28 @@ type Tracker interface {
 	RegisterInstance(instKey string)
 	InitializeChildNode(instKey string, childkey string, offSet int64)
 	Submit()
-	GetRemoveChan()chan string
-	GetCommitChan()chan bool
-	GetUpdateChan()chan bool
+	StartSubmissionTimer(retentionPeriod time.Duration)
+	IsInstanceRegistered(instKey string) bool
+	IsChildNodeInitialized(instKey string, childkey string) bool
+	GetFileCachedOffset(instkey string, fname string) int64
 }
 
 type TailNode map[string]int64
 
 type Tailer struct {
 	IsLive    bool
-	Instances map[string]TailNode // maybe a pointer
+	Instances map[string]TailNode
 }
 
 type tracker struct {
-	storage Storage
-	Cached  *Tailer
-	mux     *sync.Mutex
-	removeChan chan string
-	updateChan chan bool
-	writeChan chan bool
+	storage       Storage
+	Cached        *Tailer // do not expose this, it should ONLY be updated via Tracker methods
+	mux           *sync.Mutex
+	timerStopChan chan struct{} // used to send quit signal to timer
 }
 
 var (
-	Path = fmt.Sprintf("%s/.apptail.gob", os.Getenv("HOME"))
+	MinIOTicker = 5 * time.Second
 )
 
 func NewTracker(s Storage) Tracker {
@@ -45,118 +44,129 @@ func NewTracker(s Storage) Tracker {
 		storage: s,
 		mux:     &sync.Mutex{},
 		Cached: &Tailer{
-			Instances: make(map[string]TailNode), // we only need to instanciate this once
+			Instances: make(map[string]TailNode),
 		},
+		timerStopChan: make(chan struct{}),
 	}
 }
 
-func (t *tracker) RegisterInstance(instKey string){
+func (t *tracker) StartSubmissionTimer(retentionPeriod time.Duration) {
+	if retentionPeriod.Seconds() <= MinIOTicker.Seconds() {
+		seconds := retentionPeriod / (1000 * time.Millisecond)
+		log.Warnf("IMPORTANT: Setting retention period to %ds will increase your IO Rate", seconds)
+
+	}
+	ticker := time.NewTicker(retentionPeriod)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				t.Submit()
+			case <-t.timerStopChan:
+				ticker.Stop()
+				return
+			}
+
+		}
+	}()
+}
+
+func (t *tracker) RegisterInstance(instKey string) {
 	t.mux.Lock()
-	if _, instance_exist := t.Cached.Instances[instKey]; !instance_exist{
+	if _, instance_exist := t.Cached.Instances[instKey]; !instance_exist {
 		t.Cached.IsLive = true
 		t.Cached.Instances[instKey] = TailNode{}
-		log.Info("[RegisterInstance]Current status : ", t.Cached.Instances)
+		log.Info("Current status : ", t.Cached.Instances)
 	}
 	t.mux.Unlock()
 	runtime.Gosched()
-	
+
 }
 
-func(t *tracker) InitializeChildNode(instKey string, childkey string, offSet int64){
+// this is mainly used for testing since we are not exposing Cached via interface
+func (t *tracker) IsInstanceRegistered(instKey string) bool {
+	var exist bool
 	t.mux.Lock()
-	if _, instance_exist := t.Cached.Instances[instKey]; instance_exist{
+	if _, instance_exist := t.Cached.Instances[instKey]; instance_exist {
+		exist = instance_exist
+
+	}
+	t.mux.Unlock()
+	return exist
+}
+
+func (t *tracker) IsChildNodeInitialized(instKey string, childkey string) bool {
+	var exist bool
+	t.mux.Lock()
+	if _, instance_exist := t.Cached.Instances[instKey]; instance_exist {
 		tailNode := t.Cached.Instances[instKey]
-		if _, childNode_exist := tailNode[childkey]; !childNode_exist{
+		if _, childNode_exist := tailNode[childkey]; childNode_exist {
+			exist = childNode_exist
+		}
+		t.mux.Unlock()
+		runtime.Gosched()
+	}
+	return exist
+}
+
+func (t *tracker) InitializeChildNode(instKey string, childkey string, offSet int64) {
+	t.mux.Lock()
+	if _, instance_exist := t.Cached.Instances[instKey]; instance_exist {
+		tailNode := t.Cached.Instances[instKey]
+		if _, childNode_exist := tailNode[childkey]; !childNode_exist {
 			tailNode[childkey] = offSet
 			t.Cached.Instances[instKey] = tailNode
-			log.Info("[InitializeChildNode]Current status : ", t.Cached.Instances)
+			log.Info("Current status : ", t.Cached.Instances)
 		}
-
 	}
 	t.mux.Unlock()
 	runtime.Gosched()
 }
 
-func(t *tracker) GetRemoveChan()chan string{
-	t.removeChan = make(chan string)
-	return t.removeChan
-
-}
-
-func(t *tracker) GetCommitChan()chan bool{
-	t.writeChan = make(chan bool)
-	return t.writeChan
-	
-}
-
-func(t *tracker) GetUpdateChan()chan bool{
-	t.updateChan = make(chan bool)
-	return t.updateChan
-
-}
-
-func (t *tracker) Update(instKey string, childKey string, childVal int64){
-	t.mux.Lock()
-
-		select{
-		case val := <- t.writeChan:
-			log.Info("WRITE CHAN////////////////////////////",val)
-			log.Info("Storing the offset in the following instances:", t.Cached.Instances)
-			t.storage.Write(t.Cached)
-
-		case key := <-t.removeChan:
-			log.Info("REMOVE CHAN////////////////////////////", key)
-			//delete(t.Cached.Instances, key)
-			log.Info("[Remove]Current status : ", t.Cached.Instances)
-
-		case res := <-t.updateChan:
-			log.Info("UPDATE CHAN////////////////////////////", res)
-			if _, instance_exist := t.Cached.Instances[instKey]; instance_exist{
-				tailNode := t.Cached.Instances[instKey]
-				if _, childNode_exist := tailNode[childKey]; childNode_exist{
-
-					tailNode[childKey] = childVal
-					t.Cached.Instances[instKey] = tailNode
-					//log.Info("[Update]Current status : ", t.Cached.Instances)
-				}
-
-			}
-		default:
-			// do some other crap here
+func (t *tracker) GetFileCachedOffset(instkey string, fname string) int64 {
+	var offset int64
+	if _, instance_exist := t.Cached.Instances[instkey]; instance_exist {
+		tailNode := t.Cached.Instances[instkey]
+		if _, childNode_exist := tailNode[fname]; childNode_exist {
+			offset = tailNode[fname]
 		}
+	}
+	return offset
+}
 
+func (t *tracker) Update(instKey string, childKey string, childVal int64) {
+	var offset int64 = 0
+	if _, instance_exist := t.Cached.Instances[instKey]; instance_exist {
+		tailNode := t.Cached.Instances[instKey]
+		if _, childNode_exist := tailNode[childKey]; childNode_exist {
+			atomic.AddInt64(&offset, childVal)
+			tailNode[childKey] = atomic.LoadInt64(&offset)
+			t.Cached.Instances[instKey] = tailNode
+		}
+	}
+}
+
+func (t *tracker) Remove(key string) {
+	log.Info("Removing the following key %s from cached instances", key)
+	t.mux.Lock()
+	delete(t.Cached.Instances, key)
 	t.mux.Unlock()
 	runtime.Gosched()
-	
-	//log.Info("---------------------------------------------------------")
-	//t.LoadTailers()
-	//log.Info("---------------------------------------------------------")
+	t.Submit()
 }
 
-func (t *tracker) LoadTailers(){
+func (t *tracker) LoadTailers() {
 	t.mux.Lock()
 	t.storage.Load(&t.Cached)
-	log.Info("[LoadTailers]Loaded the following tailers from previous session:", t.Cached.Instances)
+	log.Info("Loaded the following tailers from previous session:", t.Cached.Instances)
 	t.mux.Unlock()
 	runtime.Gosched()
 }
 
-func(t *tracker) Submit(){
+func (t *tracker) Submit() {
 	t.mux.Lock()
 	log.Info("Storing the offset in the following instances:", t.Cached.Instances)
 	t.storage.Write(t.Cached)
-	log.Info("[Submit]Current status : ", t.Cached.Instances)
 	t.mux.Unlock()
 	runtime.Gosched()
-}
-
-func(t *tracker) Remove(key string) {
-	log.Info("Removing the following key:", key)
-
-	t.mux.Lock()
-	delete(t.Cached.Instances, key)
-	log.Info("[Remove]Current status : ", t.Cached.Instances)
-	t.mux.Unlock()
-	runtime.Gosched()
-
 }

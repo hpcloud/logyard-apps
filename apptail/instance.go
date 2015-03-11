@@ -7,6 +7,7 @@ import (
 	"github.com/ActiveState/logyard-apps/apptail/event"
 	"github.com/ActiveState/logyard-apps/apptail/message"
 	"github.com/ActiveState/logyard-apps/apptail/pubchannel"
+	"github.com/ActiveState/logyard-apps/apptail/storage"
 	"github.com/ActiveState/logyard-apps/apptail/util"
 	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/logyard-apps/sieve"
@@ -17,7 +18,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"github.com/ActiveState/logyard-apps/apptail/storage"
 )
 
 var (
@@ -47,10 +47,7 @@ func (instance *Instance) Tail(tracker storage.Tracker) {
 		instance.Type, instance.Identifier(), instance)
 
 	stopCh := make(chan bool)
-	commitChan := tracker.GetCommitChan()
-	//updateChan := tracker.GetUpdateChan()
-	removeChan := tracker.GetRemoveChan()
-	
+
 	instance.pubch = pubchannel.New("event.timeline", stopCh)
 
 	logfiles := instance.getLogFiles()
@@ -61,38 +58,34 @@ func (instance *Instance) Tail(tracker storage.Tracker) {
 
 	for name, filename := range logfiles {
 		go instance.tailFile(name, filename, stopCh, tracker)
-		
 	}
-	
-	go func() {
-		docker.DockerListener.BlockUntilContainerStops(instance.DockerId, commitChan)
-		log.Infof("Container for %v exited", instance.Identifier())
-		close(stopCh)
-		log.Info("we got here-----------------------")
-		removeChan <-instance.DockerId
-	}()
-	
-	
-	log.Info("THIS IS APPTAIL RESTART")
-	/*
-	go func() {
-		commitChan <- true
-	}()
 
 	go func() {
-		updateChan <- true
-	}()*/
+		docker.DockerListener.BlockUntilContainerStops(instance.DockerId)
+		log.Infof("Container for %v exited", instance.Identifier())
+		close(stopCh)
+		tracker.Remove(instance.DockerId)
+	}()
+
+	// todo get this value from config
+	go tracker.StartSubmissionTimer(4 * time.Second)
 }
 
 func (instance *Instance) tailFile(name, filename string, stopCh chan bool, tracker storage.Tracker) {
 	var err error
-	
+	var limit int64
+	var shouldInitialize bool
+
 	pub := logyard.Broker.NewPublisherMust()
 	defer pub.Stop()
 
-	limit, err := instance.getReadLimit(pub, name, filename)
+	if tracker.IsChildNodeInitialized(instance.DockerId, filename) {
+		limit = tracker.GetFileCachedOffset(instance.DockerId, filename)
+	} else {
+		limit, err = instance.getReadLimit(pub, name, filename)
+		shouldInitialize = true
+	}
 
-	
 	if err != nil {
 		log.Warn(err)
 		instance.SendTimelineEvent("WARN -- %v", err)
@@ -110,7 +103,11 @@ func (instance *Instance) tailFile(name, filename string, stopCh chan bool, trac
 		Poll:        false,
 		RateLimiter: rateLimiter})
 
-	tracker.InitializeChildNode(instance.DockerId, filename, t.Location.Offset)
+	// IMPORTANT: this registration happens everytime app restarts
+	if shouldInitialize {
+		tracker.InitializeChildNode(instance.DockerId, filename, t.Location.Offset)
+	}
+
 	if err != nil {
 		log.Warnf("Cannot tail file (%s); %s", filename, err)
 		instance.SendTimelineEvent("ERROR -- Cannot tail file (%s); %s", name, err)
@@ -126,19 +123,18 @@ FORLOOP:
 				break FORLOOP
 			}
 			currentOffset, err := t.Tell()
-			if err != nil{
+			if err != nil {
 				log.Error(err.Error())
 
 			}
 			tracker.Update(instance.DockerId, filename, currentOffset)
-
 			instance.publishLine(pub, name, line)
 		case <-stopCh:
 			err = t.Stop()
 			break FORLOOP
 		}
 	}
-	
+
 	if err != nil {
 		log.Warn(err)
 		instance.SendTimelineEvent("WARN -- Error tailing file (%s); %s", name, err)

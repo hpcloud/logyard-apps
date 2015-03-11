@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"github.com/ActiveState/log"
 	"github.com/ActiveState/logyard-apps/apptail"
 	"github.com/ActiveState/logyard-apps/apptail/docker"
@@ -14,10 +16,16 @@ import (
 	"os"
 )
 
+var (
+	gob_path = flag.String("gob_path", default_path, "Path to the gob file")
+
+	default_path = fmt.Sprintf("%s/.apptail.gob", os.Getenv("HOME"))
+)
+
 func main() {
 	go common.RegisterTailCleanup()
 
-	fstorage := storage.NewFileStorage()
+	fstorage := storage.NewFileStorage(*gob_path)
 	tracker := storage.NewTracker(fstorage)
 	tracker.LoadTailers()
 
