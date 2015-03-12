@@ -24,7 +24,6 @@ type Tracker interface {
 type TailNode map[string]int64
 
 type Tailer struct {
-	IsLive    bool
 	Instances map[string]TailNode
 }
 
@@ -74,7 +73,6 @@ func (t *tracker) StartSubmissionTimer(retentionPeriod time.Duration) {
 func (t *tracker) RegisterInstance(instKey string) {
 	t.mux.Lock()
 	if _, instance_exist := t.Cached.Instances[instKey]; !instance_exist {
-		t.Cached.IsLive = true
 		t.Cached.Instances[instKey] = TailNode{}
 		log.Info("Current status : ", t.Cached.Instances)
 	}
