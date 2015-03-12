@@ -15,3 +15,7 @@ max_lines_burst: 10000
 # maximum number of megabytes that are allowed to be read from a file
 # (near the end).
 read_limit: 16
+
+# Interval in seconds, which allows to retain the position of cursor in tail
+# while restarting apptail/crashing
+retention_per_second: 8
