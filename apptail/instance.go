@@ -20,10 +20,6 @@ import (
 	"time"
 )
 
-var (
-	Path = fmt.Sprintf("%s/.apptail.gob", os.Getenv("HOME"))
-)
-
 // Instance is the NATS message sent by dea_ng to notify of new instances.
 type Instance struct {
 	AppGUID  string
