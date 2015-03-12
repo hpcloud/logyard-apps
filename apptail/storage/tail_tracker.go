@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"github.com/ActiveState/log"
 	"runtime"
 	"sync"
@@ -21,9 +22,9 @@ type Tracker interface {
 	GetFileCachedOffset(instkey string, fname string) int64
 }
 
-type boxedInt64 struct { v int64}
+type BoxedInt64 struct{ V int64 }
 
-type TailNode map[string]*boxedInt64
+type TailNode map[string]*BoxedInt64
 
 type Tailer struct {
 	Instances map[string]TailNode
@@ -76,7 +77,7 @@ func (t *tracker) RegisterInstance(instKey string) {
 	t.mux.Lock()
 	if _, instance_exist := t.Cached.Instances[instKey]; !instance_exist {
 		t.Cached.Instances[instKey] = TailNode{}
-		log.Info("Current status : ", t.Cached.Instances)
+		t.formatMap("Current Status")
 	}
 	t.mux.Unlock()
 }
@@ -108,9 +109,9 @@ func (t *tracker) InitializeChildNode(instKey string, childkey string, offSet in
 	t.mux.Lock()
 	if tailNode, instance_exist := t.Cached.Instances[instKey]; instance_exist {
 		if _, childNode_exist := tailNode[childkey]; !childNode_exist {
-			tailNode[childkey] = &boxedInt64{v: offSet}
+			tailNode[childkey] = &BoxedInt64{V: offSet}
 			t.Cached.Instances[instKey] = tailNode
-			log.Info("Current status : ", t.Cached.Instances)
+			t.formatMap("Current Status")
 		}
 	}
 	t.mux.Unlock()
@@ -121,7 +122,7 @@ func (t *tracker) GetFileCachedOffset(instkey string, fname string) int64 {
 	var offset int64
 	t.mux.Lock()
 	if tailNode, instance_exist := t.Cached.Instances[instkey]; instance_exist {
-		offset = tailNode[fname].v
+		offset = tailNode[fname].V
 	}
 	t.mux.Unlock()
 	runtime.Gosched()
@@ -131,7 +132,7 @@ func (t *tracker) GetFileCachedOffset(instkey string, fname string) int64 {
 func (t *tracker) Update(instKey string, childKey string, childVal int64) {
 	if tailNode, instance_exist := t.Cached.Instances[instKey]; instance_exist {
 		if _, childNode_exist := tailNode[childKey]; childNode_exist {
-			atomic.StoreInt64(&tailNode[childKey].v, childVal)
+			atomic.StoreInt64(&tailNode[childKey].V, childVal)
 		}
 	}
 }
@@ -147,13 +148,26 @@ func (t *tracker) Remove(key string) {
 func (t *tracker) LoadTailers() {
 	t.mux.Lock()
 	t.storage.Load(&t.Cached)
-	log.Info("Loaded the following tailers from previous session:", t.Cached.Instances)
+	t.formatMap("Loaded")
 	t.mux.Unlock()
 }
 
 func (t *tracker) Submit() {
 	t.mux.Lock()
-	log.Info("Storing the offset in the following instances:", t.Cached.Instances)
+	t.formatMap("Storing")
 	t.storage.Write(t.Cached)
 	t.mux.Unlock()
+}
+
+func (t *tracker) formatMap(ops string) {
+
+	for k, v := range t.Cached.Instances {
+		message := fmt.Sprintf("[%s] ContainerId: %s", ops, k)
+		for fname, buffer := range v {
+
+			log.Infof(message+" File: %s --> TailOffset: %d", fname, buffer)
+
+		}
+
+	}
 }
