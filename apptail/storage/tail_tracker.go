@@ -132,8 +132,7 @@ func (t *tracker) Update(instKey string, childKey string, childVal int64) {
 	var offset int64 = 0
 	if tailNode, instance_exist := t.Cached.Instances[instKey]; instance_exist {
 		if _, childNode_exist := tailNode[childKey]; childNode_exist {
-			atomic.AddInt64(&offset, childVal)
-			//tailNode[childKey] = atomic.LoadInt64(&offset)
+			atomic.StoreInt64(&offset, childVal)
 			tailNode[childKey] = offset
 		}
 	}
