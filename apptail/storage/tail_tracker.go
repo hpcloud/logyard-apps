@@ -138,7 +138,7 @@ func (t *tracker) Update(instKey string, childKey string, childVal int64) {
 }
 
 func (t *tracker) Remove(key string) {
-	log.Info("Removing the following key %s from cached instances", key)
+	log.Infof("Removing the following key %s from cached instances", key)
 	t.mux.Lock()
 	delete(t.Cached.Instances, key)
 	t.mux.Unlock()
