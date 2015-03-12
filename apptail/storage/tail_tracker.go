@@ -21,7 +21,9 @@ type Tracker interface {
 	GetFileCachedOffset(instkey string, fname string) int64
 }
 
-type TailNode map[string]int64
+type boxedInt64 struct { v int64}
+
+type TailNode map[string]*boxedInt64
 
 type Tailer struct {
 	Instances map[string]TailNode
@@ -106,7 +108,7 @@ func (t *tracker) InitializeChildNode(instKey string, childkey string, offSet in
 	t.mux.Lock()
 	if tailNode, instance_exist := t.Cached.Instances[instKey]; instance_exist {
 		if _, childNode_exist := tailNode[childkey]; !childNode_exist {
-			tailNode[childkey] = offSet
+			tailNode[childkey] = &boxedInt64{v: offSet}
 			t.Cached.Instances[instKey] = tailNode
 			log.Info("Current status : ", t.Cached.Instances)
 		}
@@ -119,7 +121,7 @@ func (t *tracker) GetFileCachedOffset(instkey string, fname string) int64 {
 	var offset int64
 	t.mux.Lock()
 	if tailNode, instance_exist := t.Cached.Instances[instkey]; instance_exist {
-		offset = tailNode[fname]
+		offset = tailNode[fname].v
 	}
 	t.mux.Unlock()
 	runtime.Gosched()
@@ -127,11 +129,9 @@ func (t *tracker) GetFileCachedOffset(instkey string, fname string) int64 {
 }
 
 func (t *tracker) Update(instKey string, childKey string, childVal int64) {
-	var offset int64 = 0
 	if tailNode, instance_exist := t.Cached.Instances[instKey]; instance_exist {
 		if _, childNode_exist := tailNode[childKey]; childNode_exist {
-			atomic.StoreInt64(&offset, childVal)
-			tailNode[childKey] = offset
+			atomic.StoreInt64(&tailNode[childKey].v, childVal)
 		}
 	}
 }
