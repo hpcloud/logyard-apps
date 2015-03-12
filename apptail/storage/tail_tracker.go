@@ -79,8 +79,6 @@ func (t *tracker) RegisterInstance(instKey string) {
 		log.Info("Current status : ", t.Cached.Instances)
 	}
 	t.mux.Unlock()
-	runtime.Gosched()
-
 }
 
 // this is mainly used for testing since we are not exposing Cached via interface
@@ -89,7 +87,6 @@ func (t *tracker) IsInstanceRegistered(instKey string) bool {
 	t.mux.Lock()
 	if _, instance_exist := t.Cached.Instances[instKey]; instance_exist {
 		exist = instance_exist
-
 	}
 	t.mux.Unlock()
 	return exist
@@ -98,21 +95,18 @@ func (t *tracker) IsInstanceRegistered(instKey string) bool {
 func (t *tracker) IsChildNodeInitialized(instKey string, childkey string) bool {
 	var exist bool
 	t.mux.Lock()
-	if _, instance_exist := t.Cached.Instances[instKey]; instance_exist {
-		tailNode := t.Cached.Instances[instKey]
+	if tailNode, instance_exist := t.Cached.Instances[instKey]; instance_exist {
 		if _, childNode_exist := tailNode[childkey]; childNode_exist {
 			exist = childNode_exist
 		}
-		t.mux.Unlock()
-		runtime.Gosched()
 	}
+	t.mux.Unlock()
 	return exist
 }
 
 func (t *tracker) InitializeChildNode(instKey string, childkey string, offSet int64) {
 	t.mux.Lock()
-	if _, instance_exist := t.Cached.Instances[instKey]; instance_exist {
-		tailNode := t.Cached.Instances[instKey]
+	if tailNode, instance_exist := t.Cached.Instances[instKey]; instance_exist {
 		if _, childNode_exist := tailNode[childkey]; !childNode_exist {
 			tailNode[childkey] = offSet
 			t.Cached.Instances[instKey] = tailNode
@@ -125,23 +119,22 @@ func (t *tracker) InitializeChildNode(instKey string, childkey string, offSet in
 
 func (t *tracker) GetFileCachedOffset(instkey string, fname string) int64 {
 	var offset int64
-	if _, instance_exist := t.Cached.Instances[instkey]; instance_exist {
-		tailNode := t.Cached.Instances[instkey]
-		if _, childNode_exist := tailNode[fname]; childNode_exist {
-			offset = tailNode[fname]
-		}
+	t.mux.Lock()
+	if tailNode, instance_exist := t.Cached.Instances[instkey]; instance_exist {
+		offset = tailNode[fname]
 	}
+	t.mux.Unlock()
+	runtime.Gosched()
 	return offset
 }
 
 func (t *tracker) Update(instKey string, childKey string, childVal int64) {
 	var offset int64 = 0
-	if _, instance_exist := t.Cached.Instances[instKey]; instance_exist {
-		tailNode := t.Cached.Instances[instKey]
+	if tailNode, instance_exist := t.Cached.Instances[instKey]; instance_exist {
 		if _, childNode_exist := tailNode[childKey]; childNode_exist {
 			atomic.AddInt64(&offset, childVal)
-			tailNode[childKey] = atomic.LoadInt64(&offset)
-			t.Cached.Instances[instKey] = tailNode
+			//tailNode[childKey] = atomic.LoadInt64(&offset)
+			tailNode[childKey] = offset
 		}
 	}
 }
@@ -151,7 +144,6 @@ func (t *tracker) Remove(key string) {
 	t.mux.Lock()
 	delete(t.Cached.Instances, key)
 	t.mux.Unlock()
-	runtime.Gosched()
 	t.Submit()
 }
 
@@ -160,7 +152,6 @@ func (t *tracker) LoadTailers() {
 	t.storage.Load(&t.Cached)
 	log.Info("Loaded the following tailers from previous session:", t.Cached.Instances)
 	t.mux.Unlock()
-	runtime.Gosched()
 }
 
 func (t *tracker) Submit() {
@@ -168,5 +159,4 @@ func (t *tracker) Submit() {
 	log.Info("Storing the offset in the following instances:", t.Cached.Instances)
 	t.storage.Write(t.Cached)
 	t.mux.Unlock()
-	runtime.Gosched()
 }

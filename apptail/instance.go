@@ -66,13 +66,11 @@ func (instance *Instance) Tail(tracker storage.Tracker) {
 		close(stopCh)
 		tracker.Remove(instance.DockerId)
 	}()
-
-	// todo get this value from config
-	go tracker.StartSubmissionTimer(4 * time.Second)
 }
 
 func (instance *Instance) tailFile(name, filename string, stopCh chan bool, tracker storage.Tracker) {
 	var err error
+	var location *tail.SeekInfo
 	var limit int64
 	var shouldInitialize bool
 
@@ -80,9 +78,12 @@ func (instance *Instance) tailFile(name, filename string, stopCh chan bool, trac
 	defer pub.Stop()
 
 	if tracker.IsChildNodeInitialized(instance.DockerId, filename) {
-		limit = tracker.GetFileCachedOffset(instance.DockerId, filename)
+		offset := tracker.GetFileCachedOffset(instance.DockerId, filename)
+		location = &tail.SeekInfo{offset, os.SEEK_SET}
 	} else {
+
 		limit, err = instance.getReadLimit(pub, name, filename)
+		location = &tail.SeekInfo{-limit, os.SEEK_END}
 		shouldInitialize = true
 	}
 
@@ -98,7 +99,7 @@ func (instance *Instance) tailFile(name, filename string, stopCh chan bool, trac
 		MaxLineSize: GetConfig().MaxRecordSize,
 		MustExist:   true,
 		Follow:      true,
-		Location:    &tail.SeekInfo{-limit, os.SEEK_END},
+		Location:    location,
 		ReOpen:      false,
 		Poll:        false,
 		RateLimiter: rateLimiter})

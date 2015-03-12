@@ -14,6 +14,7 @@ import (
 	uuid "github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 var (
@@ -26,14 +27,17 @@ func main() {
 	flag.Parse()
 	go common.RegisterTailCleanup()
 
+	apptail.LoadConfig()
+	
 	fstorage := storage.NewFileStorage(*gob_path)
 	tracker := storage.NewTracker(fstorage)
 	tracker.LoadTailers()
-
+	interval := time.Duration(int64(apptail.GetConfig().RetentionPerSecond))
+	go tracker.StartSubmissionTimer(interval * time.Second)
+	
 	major, minor, patch := gozmq.Version()
 	log.Infof("Starting apptail (zeromq %d.%d.%d)", major, minor, patch)
-
-	apptail.LoadConfig()
+	
 	log.Infof("Config: %+v\n", apptail.GetConfig())
 
 	uid := getUID()
