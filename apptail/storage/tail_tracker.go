@@ -139,19 +139,16 @@ func (t *tracker) Update(instKey string, childKey string, childVal int64) {
 	}
 }
 
-func (t *tracker) CleanUp(clenups map[string]bool) {
-	// docker.Listen adds docker keys in a short format
-	const ID_LENGTH = 12
+func (t *tracker) CleanUp(cleanups map[string]bool) {
+	allInstances := make(map[string]bool)
 	t.mux.Lock()
+	for key := range t.Cached.Instances {
+		allInstances[key] = true
 
-	for docker_id := range clenups {
-		for inst_key := range t.Cached.Instances {
-
-			if docker_id != inst_key[:ID_LENGTH] {
-				delete(t.Cached.Instances, inst_key)
-
-			}
-		}
+	}
+	instanceToRemove := getEntryToCleanUp(allInstances, cleanups)
+	for key := range instanceToRemove {
+		delete(t.Cached.Instances, key)
 
 	}
 	t.formatMap("Cleaned up")
@@ -164,8 +161,7 @@ func (t *tracker) Remove(key string) {
 	t.mux.Lock()
 	delete(t.Cached.Instances, key)
 	t.mux.Unlock()
-	err := t.Commit()
-	if err != nil {
+	if err := t.Commit(); err != nil {
 		log.Fatal(err)
 
 	}
@@ -195,15 +191,21 @@ func (t *tracker) Commit() error {
 
 	}
 
-	t.mux.Lock()
-	t.formatMap("Storing")
+	// enable for debuging
+	/*
+		t.mux.Lock()
+		t.formatMap("Storing")
+		t.mux.Unlock()
+	*/
 
+	writeMux := &sync.Mutex{}
+	writeMux.Lock()
 	err = t.storage.Write(bytes)
 	if err != nil {
 		return err
 
 	}
-	t.mux.Unlock()
+	writeMux.Unlock()
 	return nil
 }
 
@@ -218,4 +220,39 @@ func (t *tracker) formatMap(ops string) {
 		}
 
 	}
+}
+
+func getEntryToCleanUp(instances map[string]bool, cleanUps map[string]bool) map[string]bool {
+
+	arrayToHash := make(map[string]bool)
+	arrayToSearch := make(map[string]bool)
+
+	if len(instances) < len(cleanUps) {
+		arrayToHash = instances
+		arrayToSearch = cleanUps
+
+	} else {
+		arrayToHash = cleanUps
+		arrayToSearch = instances
+
+	}
+
+	intersection := make(map[string]bool)
+	hashedArray := make(map[string]bool)
+
+	for key, val := range arrayToHash {
+		hashedArray[key] = val
+
+	}
+
+	for k2, v2 := range arrayToSearch {
+		if _, exist := hashedArray[k2]; !exist {
+			intersection[k2] = v2
+
+		}
+
+	}
+
+	return intersection
+
 }

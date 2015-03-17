@@ -22,7 +22,9 @@ type FileStorage struct {
 const FILE_MODE = 0666
 
 func NewFileStorage(path string) Storage {
-	return &FileStorage{file_path: path}
+	return &FileStorage{
+		file_path: path,
+	}
 
 }
 
@@ -39,13 +41,12 @@ func (s *FileStorage) Encode(data interface{}) ([]byte, error) {
 
 func (s *FileStorage) Write(buf []byte) error {
 
-	err := ioutil.WriteFile(s.file_path, buf, FILE_MODE)
-	if err != nil {
+	if err := ioutil.WriteFile(s.file_path, buf, FILE_MODE); err != nil {
 		return err
 
 	}
 	// this extra step to make the file accessible by stackato user
-	if err = os.Chmod(s.file_path, FILE_MODE); err != nil {
+	if err := os.Chmod(s.file_path, FILE_MODE); err != nil {
 		return err
 
 	}

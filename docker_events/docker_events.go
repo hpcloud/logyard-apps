@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/ActiveState/log"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"time"
 )
@@ -57,4 +58,46 @@ func getDockerEvents(retries int) *http.Response {
 		}
 	}
 	panic("unreachable")
+}
+
+type Docker struct {
+	Id string `json:"id"`
+}
+
+func GetLiveDockerContainers(retries int) map[string]bool {
+	const ID_LENGTH = 12
+	allDockerIds := make(map[string]bool)
+	var httpResByte []byte
+	c := http.Client{}
+	for attempt := 0; attempt < retries; attempt++ {
+		res, err := c.Get("http://localhost:4243/containers/json")
+		defer res.Body.Close()
+		if err != nil {
+			if (attempt + 1) == retries {
+				log.Fatalf("Failed to read from docker daemon; giving up retrying: %v", err)
+			}
+			log.Warnf("Docker connection error (%v); retrying after 1 second.", err)
+			time.Sleep(time.Second)
+		} else {
+			httpResByte, err = ioutil.ReadAll(res.Body)
+			if err != nil {
+				panic(err)
+
+			}
+			var jsonData []Docker
+			err = json.Unmarshal([]byte(httpResByte), &jsonData)
+
+			if err != nil {
+				panic(err)
+
+			}
+
+			for _, element := range jsonData {
+				shortenedKey := element.Id[:ID_LENGTH]
+				allDockerIds[shortenedKey] = true
+			}
+
+		}
+	}
+	return allDockerIds
 }

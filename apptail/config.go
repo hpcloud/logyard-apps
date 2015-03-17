@@ -16,7 +16,7 @@ type Config struct {
 	MaxLinesPerSecond              int64  `json:"max_lines_per_second"`
 	MaxLinesBurst                  uint16 `json:"max_lines_burst"`
 	FileSizeLimit                  int64  `json:"read_limit"`
-	PersistPositionIntervalSeconds int64  `json:"Persist_Position_Interval_Seconds"`
+	PersistPositionIntervalSeconds int64  `json:"persist_position_interval_seconds"`
 }
 
 var c *server.Config
