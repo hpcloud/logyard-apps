@@ -65,7 +65,9 @@ type Docker struct {
 }
 
 func GetLiveDockerContainers(retries int) map[string]bool {
+
 	const ID_LENGTH = 12
+
 	allDockerIds := make(map[string]bool)
 	var httpResByte []byte
 	c := http.Client{}
@@ -93,7 +95,9 @@ func GetLiveDockerContainers(retries int) map[string]bool {
 			}
 
 			for _, element := range jsonData {
+
 				shortenedKey := element.Id[:ID_LENGTH]
+
 				allDockerIds[shortenedKey] = true
 			}
 
