@@ -3,7 +3,6 @@ package storage
 import (
 	"fmt"
 	"github.com/ActiveState/log"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -15,11 +14,13 @@ type Tracker interface {
 	Remove(key string)
 	RegisterInstance(instKey string)
 	InitializeChildNode(instKey string, childkey string, offSet int64)
-	Submit()
-	StartSubmissionTimer(retentionPeriod time.Duration)
+	Commit() error
+	StartSubmissionTimer(persistInterval time.Duration)
 	IsInstanceRegistered(instKey string) bool
 	IsChildNodeInitialized(instKey string, childkey string) bool
 	GetFileCachedOffset(instkey string, fname string) int64
+	getBuffer() ([]byte, error)
+	CleanUp(clenups map[string]bool)
 }
 
 type BoxedInt64 struct{ V int64 }
@@ -34,7 +35,7 @@ type tracker struct {
 	storage       Storage
 	Cached        *Tailer // do not expose this, it should ONLY be updated via Tracker methods
 	mux           *sync.Mutex
-	timerStopChan chan struct{} // used to send quit signal to timer
+	timerStopChan chan struct{} // used to send quit signal to time
 }
 
 var (
@@ -42,6 +43,7 @@ var (
 )
 
 func NewTracker(s Storage) Tracker {
+
 	return &tracker{
 		storage: s,
 		mux:     &sync.Mutex{},
@@ -52,18 +54,22 @@ func NewTracker(s Storage) Tracker {
 	}
 }
 
-func (t *tracker) StartSubmissionTimer(retentionPeriod time.Duration) {
-	if retentionPeriod.Seconds() <= MinIOTicker.Seconds() {
-		seconds := retentionPeriod / (1000 * time.Millisecond)
-		log.Warnf("IMPORTANT: Setting retention period to %ds will increase your IO Rate", seconds)
+func (t *tracker) StartSubmissionTimer(persistInterval time.Duration) {
+	if persistInterval.Seconds() <= MinIOTicker.Seconds() {
+		seconds := persistInterval / (1000 * time.Millisecond)
+		log.Warnf("IMPORTANT: Setting tail persist interval to %ds will increase your IO Rate", seconds)
 
 	}
-	ticker := time.NewTicker(retentionPeriod)
+	ticker := time.NewTicker(persistInterval)
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
-				t.Submit()
+				err := t.Commit()
+				if err != nil {
+					log.Fatal(err)
+
+				}
 			case <-t.timerStopChan:
 				ticker.Stop()
 				return
@@ -84,12 +90,10 @@ func (t *tracker) RegisterInstance(instKey string) {
 
 // this is mainly used for testing since we are not exposing Cached via interface
 func (t *tracker) IsInstanceRegistered(instKey string) bool {
-	var exist bool
 	t.mux.Lock()
-	if _, instance_exist := t.Cached.Instances[instKey]; instance_exist {
-		exist = instance_exist
-	}
-	t.mux.Unlock()
+	defer t.mux.Unlock()
+	_, exist := t.Cached.Instances[instKey]
+
 	return exist
 }
 
@@ -115,7 +119,6 @@ func (t *tracker) InitializeChildNode(instKey string, childkey string, offSet in
 		}
 	}
 	t.mux.Unlock()
-	runtime.Gosched()
 }
 
 func (t *tracker) GetFileCachedOffset(instkey string, fname string) int64 {
@@ -125,7 +128,6 @@ func (t *tracker) GetFileCachedOffset(instkey string, fname string) int64 {
 		offset = atomic.LoadInt64(&tailNode[fname].V)
 	}
 	t.mux.Unlock()
-	runtime.Gosched()
 	return offset
 }
 
@@ -137,26 +139,72 @@ func (t *tracker) Update(instKey string, childKey string, childVal int64) {
 	}
 }
 
+func (t *tracker) CleanUp(clenups map[string]bool) {
+	// docker.Listen adds docker keys in a short format
+	const ID_LENGTH = 12
+	t.mux.Lock()
+
+	for docker_id := range clenups {
+		for inst_key := range t.Cached.Instances {
+
+			if docker_id != inst_key[:ID_LENGTH] {
+				delete(t.Cached.Instances, inst_key)
+
+			}
+		}
+
+	}
+	t.formatMap("Cleaned up")
+	t.mux.Unlock()
+
+}
+
 func (t *tracker) Remove(key string) {
 	log.Infof("Removing the following key %s from cached instances", key)
 	t.mux.Lock()
 	delete(t.Cached.Instances, key)
 	t.mux.Unlock()
-	t.Submit()
+	err := t.Commit()
+	if err != nil {
+		log.Fatal(err)
+
+	}
 }
 
 func (t *tracker) LoadTailers() {
 	t.mux.Lock()
 	t.storage.Load(&t.Cached)
+
 	t.formatMap("Loaded")
 	t.mux.Unlock()
 }
 
-func (t *tracker) Submit() {
+func (t *tracker) getBuffer() ([]byte, error) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+	return t.storage.Encode(t.Cached)
+
+}
+
+func (t *tracker) Commit() error {
+
+	bytes, err := t.getBuffer()
+
+	if err != nil {
+		return err
+
+	}
+
 	t.mux.Lock()
 	t.formatMap("Storing")
-	t.storage.Write(t.Cached)
+
+	err = t.storage.Write(bytes)
+	if err != nil {
+		return err
+
+	}
 	t.mux.Unlock()
+	return nil
 }
 
 func (t *tracker) formatMap(ops string) {

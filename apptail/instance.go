@@ -16,6 +16,7 @@ import (
 	"logyard"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -59,9 +60,14 @@ func (instance *Instance) Tail(tracker storage.Tracker) {
 	go func() {
 		docker.DockerListener.BlockUntilContainerStops(instance.DockerId)
 		log.Infof("Container for %v exited", instance.Identifier())
+
 		close(stopCh)
 		tracker.Remove(instance.DockerId)
+
 	}()
+
+	// clean up the cash after restart
+	docker.DockerListener.TrackerCleanUp(tracker)
 }
 
 func (instance *Instance) tailFile(name, filename string, stopCh chan bool, tracker storage.Tracker) {
@@ -72,6 +78,10 @@ func (instance *Instance) tailFile(name, filename string, stopCh chan bool, trac
 
 	pub := logyard.Broker.NewPublisherMust()
 	defer pub.Stop()
+
+	// we explicitly yield here to make sure not to starve
+	// the other goroutines that are running in parallel
+	defer runtime.Gosched()
 
 	if tracker.IsChildNodeInitialized(instance.DockerId, filename) {
 		offset := tracker.GetFileCachedOffset(instance.DockerId, filename)

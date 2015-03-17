@@ -2,6 +2,7 @@ package docker
 
 import (
 	"github.com/ActiveState/log"
+	"github.com/ActiveState/logyard-apps/apptail/storage"
 	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/logyard-apps/docker_events"
 	"sync"
@@ -64,4 +65,16 @@ func (l *dockerListener) Listen() {
 		}
 		l.mux.Unlock()
 	}
+}
+
+func (l *dockerListener) TrackerCleanUp(tracker storage.Tracker) {
+	cleanUps := make(map[string]bool)
+	l.mux.Lock()
+	for key := range l.waiters {
+		cleanUps[key] = true
+	}
+
+	tracker.CleanUp(cleanUps)
+	l.mux.Unlock()
+
 }

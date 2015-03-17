@@ -10,8 +10,9 @@ import (
 
 // exposing these for testing
 type Storage interface {
-	Write(data interface{})
+	Encode(data interface{}) ([]byte, error)
 	Load(data interface{})
+	Write(buf []byte) error
 }
 
 type FileStorage struct {
@@ -25,24 +26,30 @@ func NewFileStorage(path string) Storage {
 
 }
 
-func (s *FileStorage) Write(data interface{}) {
+func (s *FileStorage) Encode(data interface{}) ([]byte, error) {
 	m := new(bytes.Buffer)
 	enc := gob.NewEncoder(m)
 	err := enc.Encode(data)
 	if err != nil {
-		log.Error(err)
+		return nil, err
 
 	}
-	err = ioutil.WriteFile(s.file_path, m.Bytes(), FILE_MODE)
+	return m.Bytes(), nil
+}
+
+func (s *FileStorage) Write(buf []byte) error {
+
+	err := ioutil.WriteFile(s.file_path, buf, FILE_MODE)
 	if err != nil {
-		log.Error(err)
+		return err
 
 	}
 	// this extra step to make the file accessible by stackato user
 	if err = os.Chmod(s.file_path, FILE_MODE); err != nil {
-		log.Error(err)
+		return err
 
 	}
+	return nil
 }
 
 func (s *FileStorage) Load(e interface{}) {

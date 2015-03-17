@@ -32,7 +32,8 @@ func main() {
 	fstorage := storage.NewFileStorage(*gob_path)
 	tracker := storage.NewTracker(fstorage)
 	tracker.LoadTailers()
-	interval := time.Duration(int64(apptail.GetConfig().RetentionPerSecond))
+
+	interval := time.Duration(int64(apptail.GetConfig().PersistPositionIntervalSeconds))
 	go tracker.StartSubmissionTimer(interval * time.Second)
 
 	major, minor, patch := gozmq.Version()
@@ -56,6 +57,7 @@ func main() {
 	server.MarkRunning("apptail")
 
 	apptail_event.MonitorCloudEvents()
+
 }
 
 // getUID returns the UID of the aggregator running on this node. the UID is

@@ -1,8 +1,6 @@
 package storage
 
-import (
-	"testing"
-)
+import "testing"
 
 var (
 	instanceKey = "fakeDockerId12345"
@@ -160,16 +158,57 @@ func TestLoadTailers_WhenCalled_ItLoadsFromGobFile(t *testing.T) {
 
 }
 
-func TestSubmit_WhenCalled_ItCallsStorageWriteToWriteToFile(t *testing.T) {
+func TestCommit_WhenCalled_ItCallsExpectedMethods(t *testing.T) {
 	fakeFileStorage := NewFakeFileStorage("somepath")
 	tracker := NewTracker(fakeFileStorage)
 
-	tracker.Submit()
+	tracker.Commit()
 
-	if IsWriteCalled == true {
+	if IsWriteCalled && IsEncodeCalled {
 		t.Log("passed")
 	} else {
 		t.Fail()
 
 	}
+}
+
+func TestCommit_UnderlyingCallReturnsError_CommitBubbleUpTheError(t *testing.T) {
+	fakeFileStorage := NewFakeFileStorage("somepath")
+	tracker := NewTracker(fakeFileStorage)
+
+	ThrowError = true
+
+	err := tracker.Commit()
+
+	if err != nil {
+		t.Log("passed")
+
+	} else {
+		t.Fail()
+	}
+
+}
+
+func TestCleanUp_WhenCalled_ShouldRemoveOldContainerId(t *testing.T) {
+	fakeFileStorage := NewFakeFileStorage("somepath")
+	tracker := NewTracker(fakeFileStorage)
+
+	deadKey := "deadDocker1234"
+
+	tracker.RegisterInstance(instanceKey)
+
+	cleanUp := make(map[string]bool)
+	cleanUp[instanceKey] = true
+	cleanUp[deadKey] = true
+
+	tracker.CleanUp(cleanUp)
+
+	if tracker.IsInstanceRegistered(deadKey) {
+		t.Fail()
+
+	} else {
+		t.Log("Pass")
+
+	}
+
 }
