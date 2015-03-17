@@ -54,6 +54,9 @@ func main() {
 
 	go docker.DockerListener.Listen()
 
+	// clean up the cache after restart
+	//docker.DockerListener.TrackerCleanUp(tracker)
+
 	server.MarkRunning("apptail")
 
 	apptail_event.MonitorCloudEvents()

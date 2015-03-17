@@ -16,7 +16,6 @@ import (
 	"logyard"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -51,7 +50,9 @@ func (instance *Instance) Tail(tracker storage.Tracker) {
 
 	log.Infof("Determined log files: %+v", logfiles)
 
-	tracker.RegisterInstance(instance.DockerId)
+	shortDockerId := instance.getShortDockerId()
+
+	tracker.RegisterInstance(shortDockerId)
 
 	for name, filename := range logfiles {
 		go instance.tailFile(name, filename, stopCh, tracker)
@@ -60,14 +61,15 @@ func (instance *Instance) Tail(tracker storage.Tracker) {
 	go func() {
 		docker.DockerListener.BlockUntilContainerStops(instance.DockerId)
 		log.Infof("Container for %v exited", instance.Identifier())
-
 		close(stopCh)
-		tracker.Remove(instance.DockerId)
-
+		tracker.Remove(shortDockerId)
 	}()
+}
 
-	// clean up the cash after restart
-	docker.DockerListener.TrackerCleanUp(tracker)
+func (instance *Instance) getShortDockerId() string {
+	const ID_LENGTH = 12
+
+	return instance.DockerId[:ID_LENGTH]
 }
 
 func (instance *Instance) tailFile(name, filename string, stopCh chan bool, tracker storage.Tracker) {
@@ -79,12 +81,8 @@ func (instance *Instance) tailFile(name, filename string, stopCh chan bool, trac
 	pub := logyard.Broker.NewPublisherMust()
 	defer pub.Stop()
 
-	// we explicitly yield here to make sure not to starve
-	// the other goroutines that are running in parallel
-	defer runtime.Gosched()
-
-	if tracker.IsChildNodeInitialized(instance.DockerId, filename) {
-		offset := tracker.GetFileCachedOffset(instance.DockerId, filename)
+	if tracker.IsChildNodeInitialized(instance.getShortDockerId(), filename) {
+		offset := tracker.GetFileCachedOffset(instance.getShortDockerId(), filename)
 		location = &tail.SeekInfo{offset, os.SEEK_SET}
 	} else {
 
@@ -112,7 +110,7 @@ func (instance *Instance) tailFile(name, filename string, stopCh chan bool, trac
 
 	// IMPORTANT: this registration happens everytime app restarts
 	if shouldInitialize {
-		tracker.InitializeChildNode(instance.DockerId, filename, t.Location.Offset)
+		tracker.InitializeChildNode(instance.getShortDockerId(), filename, t.Location.Offset)
 	}
 
 	if err != nil {
@@ -134,7 +132,7 @@ FORLOOP:
 				log.Error(err.Error())
 
 			}
-			tracker.Update(instance.DockerId, filename, currentOffset)
+			tracker.Update(instance.getShortDockerId(), filename, currentOffset)
 			instance.publishLine(pub, name, line)
 		case <-stopCh:
 			err = t.Stop()

@@ -68,13 +68,5 @@ func (l *dockerListener) Listen() {
 }
 
 func (l *dockerListener) TrackerCleanUp(tracker storage.Tracker) {
-	cleanUps := make(map[string]bool)
-	l.mux.Lock()
-	for key := range l.waiters {
-		cleanUps[key] = true
-	}
-
-	tracker.CleanUp(cleanUps)
-	l.mux.Unlock()
-
+	tracker.CleanUp(docker_events.GetLiveDockerContainers(3))
 }
