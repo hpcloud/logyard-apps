@@ -1,15 +1,18 @@
 package storage
 
-import "testing"
+import (
+	"testing"
+)
 
 var (
 	instanceKey = "fakeDockerId12345"
 	childKey    = "path/to/some/file/stderr.log"
+	debug       = false
 )
 
 func TestRegisterInstance_PassedNonExsitingInstanceKey_ItShouldAddToMapOfInstances(t *testing.T) {
 	fakeFileStorage := NewFakeFileStorage("somepath")
-	tracker := NewTracker(fakeFileStorage)
+	tracker := NewTracker(fakeFileStorage, debug)
 
 	tracker.RegisterInstance(instanceKey)
 
@@ -25,7 +28,7 @@ func TestRegisterInstance_PassedNonExsitingInstanceKey_ItShouldAddToMapOfInstanc
 
 func Test_InitializeChildNode_CalledWithCorrectArgs_IfNotRegisteredItShouldAssociateToInstance(t *testing.T) {
 	fakeFileStorage := NewFakeFileStorage("somepath")
-	tracker := NewTracker(fakeFileStorage)
+	tracker := NewTracker(fakeFileStorage, debug)
 
 	tracker.RegisterInstance(instanceKey)
 	tracker.InitializeChildNode(instanceKey, childKey, 1024)
@@ -42,7 +45,7 @@ func Test_InitializeChildNode_CalledWithCorrectArgs_IfNotRegisteredItShouldAssoc
 
 func TestGetFileCachedOffset_CalledWithCorrectArgs_ItShouldReturnCorrectCachedOffsetFromTailNodeMap(t *testing.T) {
 	fakeFileStorage := NewFakeFileStorage("somepath")
-	tracker := NewTracker(fakeFileStorage)
+	tracker := NewTracker(fakeFileStorage, debug)
 
 	var offset int64 = 1024
 
@@ -63,7 +66,7 @@ func TestGetFileCachedOffset_CalledWithCorrectArgs_ItShouldReturnCorrectCachedOf
 
 func TestUpdate_CalledFrequently_ItShouldIncrementOffsetPosition(t *testing.T) {
 	fakeFileStorage := NewFakeFileStorage("somepath")
-	tracker := NewTracker(fakeFileStorage)
+	tracker := NewTracker(fakeFileStorage, debug)
 
 	var offset int64 = 1024
 
@@ -90,7 +93,7 @@ func TestUpdate_CalledFrequently_ItShouldIncrementOffsetPosition(t *testing.T) {
 
 func TestUpdate_CalledWithNonExistingInstanceKey_ItSholdNotIncrementOffset(t *testing.T) {
 	fakeFileStorage := NewFakeFileStorage("somepath")
-	tracker := NewTracker(fakeFileStorage)
+	tracker := NewTracker(fakeFileStorage, debug)
 
 	var offset int64 = 1024
 
@@ -111,7 +114,7 @@ func TestUpdate_CalledWithNonExistingInstanceKey_ItSholdNotIncrementOffset(t *te
 
 func TestRemove_CalledWithaCorrectKey_ItshouldRemoveInstanceFromCached(t *testing.T) {
 	fakeFileStorage := NewFakeFileStorage("somepath")
-	tracker := NewTracker(fakeFileStorage)
+	tracker := NewTracker(fakeFileStorage, debug)
 	tracker.RegisterInstance(instanceKey)
 
 	tracker.Remove(instanceKey)
@@ -127,7 +130,7 @@ func TestRemove_CalledWithaCorrectKey_ItshouldRemoveInstanceFromCached(t *testin
 
 func TestRemove_CalledWithCorrectKey_ItShouldAlsoRemoveFromFile(t *testing.T) {
 	fakeFileStorage := NewFakeFileStorage("somepath")
-	tracker := NewTracker(fakeFileStorage)
+	tracker := NewTracker(fakeFileStorage, debug)
 	tracker.RegisterInstance(instanceKey)
 
 	tracker.Remove(instanceKey)
@@ -144,7 +147,7 @@ func TestRemove_CalledWithCorrectKey_ItShouldAlsoRemoveFromFile(t *testing.T) {
 
 func TestLoadTailers_WhenCalled_ItLoadsFromGobFile(t *testing.T) {
 	fakeFileStorage := NewFakeFileStorage("somepath")
-	tracker := NewTracker(fakeFileStorage)
+	tracker := NewTracker(fakeFileStorage, debug)
 
 	tracker.LoadTailers()
 
@@ -160,7 +163,7 @@ func TestLoadTailers_WhenCalled_ItLoadsFromGobFile(t *testing.T) {
 
 func TestCommit_WhenCalled_ItCallsExpectedMethods(t *testing.T) {
 	fakeFileStorage := NewFakeFileStorage("somepath")
-	tracker := NewTracker(fakeFileStorage)
+	tracker := NewTracker(fakeFileStorage, debug)
 
 	tracker.Commit()
 
@@ -174,7 +177,7 @@ func TestCommit_WhenCalled_ItCallsExpectedMethods(t *testing.T) {
 
 func TestCommit_UnderlyingCallReturnsError_CommitBubbleUpTheError(t *testing.T) {
 	fakeFileStorage := NewFakeFileStorage("somepath")
-	tracker := NewTracker(fakeFileStorage)
+	tracker := NewTracker(fakeFileStorage, debug)
 
 	ThrowError = true
 
@@ -189,25 +192,75 @@ func TestCommit_UnderlyingCallReturnsError_CommitBubbleUpTheError(t *testing.T) 
 
 }
 
-func TestCleanUp_WhenCalled_ShouldRemoveOldContainerId(t *testing.T) {
+func TestCleanUp_WhenCalledWithAListOfValidIds_ShouldRemoveOldContainerId(t *testing.T) {
 	fakeFileStorage := NewFakeFileStorage("somepath")
-	tracker := NewTracker(fakeFileStorage)
+	tracker := NewTracker(fakeFileStorage, debug)
 
-	deadKey := "deadDocker1234"
+	validIds := make(map[string]bool)
+	validIds["dockerId1"] = true
+	validIds["dockerId2"] = true
+	validIds["dockerId3"] = true
 
-	tracker.RegisterInstance(instanceKey)
+	tracker.RegisterInstance("dockerId1")
+	tracker.RegisterInstance("dockerId2")
 
-	cleanUp := make(map[string]bool)
-	cleanUp[instanceKey] = true
-	cleanUp[deadKey] = true
+	tracker.CleanUp(validIds)
 
-	tracker.CleanUp(cleanUp)
-
-	if tracker.IsInstanceRegistered(deadKey) {
+	if tracker.IsInstanceRegistered("dockerId3") {
 		t.Fail()
 
 	} else {
-		t.Log("Pass")
+		t.Log("pass")
+
+	}
+
+}
+
+func Test_getEntriesToCleanUp_WhenCalledWithTwoValidMaps_ItShouldReturnAnIntersection(t *testing.T) {
+
+	map_one := map[string]bool{
+		"docker1": true,
+		"docker2": true,
+		"docker3": true,
+	}
+
+	map_two := map[string]bool{
+		"docker1": true,
+		"docker2": true,
+	}
+
+	intersection := getEntriesToCleanUp(map_two, map_one)
+
+	if len(intersection) < 1 {
+		t.Fail()
+
+	} else {
+		t.Log("passed")
+
+	}
+
+}
+
+func Test_getEntriesToCleanUp_WhenCalledWithTwoValidMaps_ItShouldHandleAnyOrderOfArguments(t *testing.T) {
+	map_one := map[string]bool{
+		"docker1": true,
+		"docker2": true,
+		"docker3": true,
+	}
+
+	map_two := map[string]bool{
+		"docker1": true,
+		"docker2": true,
+	}
+
+	intersection := getEntriesToCleanUp(map_two, map_one)
+	second_intersection := getEntriesToCleanUp(map_one, map_two)
+
+	if len(intersection) == len(second_intersection) {
+		t.Log("pass")
+
+	} else {
+		t.Fail()
 
 	}
 

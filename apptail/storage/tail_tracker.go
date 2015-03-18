@@ -20,7 +20,7 @@ type Tracker interface {
 	IsChildNodeInitialized(instKey string, childkey string) bool
 	GetFileCachedOffset(instkey string, fname string) int64
 	getBuffer() ([]byte, error)
-	CleanUp(clenups map[string]bool)
+	CleanUp(validIds map[string]bool)
 }
 
 type BoxedInt64 struct{ V int64 }
@@ -35,22 +35,26 @@ type tracker struct {
 	storage       Storage
 	Cached        *Tailer // do not expose this, it should ONLY be updated via Tracker methods
 	mux           *sync.Mutex
-	timerStopChan chan struct{} // used to send quit signal to time
+	writeMux      *sync.Mutex
+	timerStopChan chan struct{} // used to send quit signal to time,
+	debug         bool
 }
 
 var (
 	MinIOTicker = 5 * time.Second
 )
 
-func NewTracker(s Storage) Tracker {
+func NewTracker(s Storage, debug bool) Tracker {
 
 	return &tracker{
-		storage: s,
-		mux:     &sync.Mutex{},
+		storage:  s,
+		mux:      &sync.Mutex{},
+		writeMux: &sync.Mutex{},
 		Cached: &Tailer{
 			Instances: make(map[string]TailNode),
 		},
 		timerStopChan: make(chan struct{}),
+		debug:         debug,
 	}
 }
 
@@ -83,7 +87,10 @@ func (t *tracker) RegisterInstance(instKey string) {
 	t.mux.Lock()
 	if _, instance_exist := t.Cached.Instances[instKey]; !instance_exist {
 		t.Cached.Instances[instKey] = TailNode{}
-		t.formatMap("Current Status")
+		if t.debug {
+
+			t.dumpState("Current Status")
+		}
 	}
 	t.mux.Unlock()
 }
@@ -115,7 +122,11 @@ func (t *tracker) InitializeChildNode(instKey string, childkey string, offSet in
 		if _, childNode_exist := tailNode[childkey]; !childNode_exist {
 			tailNode[childkey] = &BoxedInt64{V: offSet}
 			t.Cached.Instances[instKey] = tailNode
-			t.formatMap("Current Status")
+			if t.debug {
+
+				t.dumpState("Current Status")
+			}
+
 		}
 	}
 	t.mux.Unlock()
@@ -139,19 +150,23 @@ func (t *tracker) Update(instKey string, childKey string, childVal int64) {
 	}
 }
 
-func (t *tracker) CleanUp(cleanups map[string]bool) {
-	allInstances := make(map[string]bool)
+func (t *tracker) CleanUp(validIds map[string]bool) {
+	cachedIds := make(map[string]bool)
 	t.mux.Lock()
 	for key := range t.Cached.Instances {
-		allInstances[key] = true
+		cachedIds[key] = true
 
 	}
-	instanceToRemove := getEntryToCleanUp(allInstances, cleanups)
-	for key := range instanceToRemove {
+	instancesToRemove := getEntriesToCleanUp(cachedIds, validIds)
+	for key := range instancesToRemove {
 		delete(t.Cached.Instances, key)
 
 	}
-	t.formatMap("Cleaned up")
+	if t.debug {
+		t.dumpState("Cleaned up")
+
+	}
+
 	t.mux.Unlock()
 
 }
@@ -171,7 +186,11 @@ func (t *tracker) LoadTailers() {
 	t.mux.Lock()
 	t.storage.Load(&t.Cached)
 
-	t.formatMap("Loaded")
+	if t.debug {
+		t.dumpState("Loaded")
+
+	}
+
 	t.mux.Unlock()
 }
 
@@ -191,25 +210,24 @@ func (t *tracker) Commit() error {
 
 	}
 
-	// enable for debuging
-	/*
+	if t.debug {
 		t.mux.Lock()
-		t.formatMap("Storing")
+		t.dumpState("Storing")
 		t.mux.Unlock()
-	*/
 
-	writeMux := &sync.Mutex{}
-	writeMux.Lock()
+	}
+
+	t.writeMux.Lock()
 	err = t.storage.Write(bytes)
 	if err != nil {
 		return err
 
 	}
-	writeMux.Unlock()
+	t.writeMux.Unlock()
 	return nil
 }
 
-func (t *tracker) formatMap(ops string) {
+func (t *tracker) dumpState(ops string) {
 
 	for k, v := range t.Cached.Instances {
 		message := fmt.Sprintf("[%s] ContainerId: %s", ops, k)
@@ -222,31 +240,31 @@ func (t *tracker) formatMap(ops string) {
 	}
 }
 
-func getEntryToCleanUp(instances map[string]bool, cleanUps map[string]bool) map[string]bool {
+func getEntriesToCleanUp(instances map[string]bool, cleanUps map[string]bool) map[string]bool {
 
-	arrayToHash := make(map[string]bool)
-	arrayToSearch := make(map[string]bool)
+	mapToHash := make(map[string]bool)
+	mapToSearch := make(map[string]bool)
 
 	if len(instances) < len(cleanUps) {
-		arrayToHash = instances
-		arrayToSearch = cleanUps
+		mapToHash = instances
+		mapToSearch = cleanUps
 
 	} else {
-		arrayToHash = cleanUps
-		arrayToSearch = instances
+		mapToHash = cleanUps
+		mapToSearch = instances
 
 	}
 
 	intersection := make(map[string]bool)
-	hashedArray := make(map[string]bool)
+	hashedMap := make(map[string]bool)
 
-	for key, val := range arrayToHash {
-		hashedArray[key] = val
+	for key, val := range mapToHash {
+		hashedMap[key] = val
 
 	}
 
-	for k2, v2 := range arrayToSearch {
-		if _, exist := hashedArray[k2]; !exist {
+	for k2, v2 := range mapToSearch {
+		if _, exist := hashedMap[k2]; !exist {
 			intersection[k2] = v2
 
 		}

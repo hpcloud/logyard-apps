@@ -18,9 +18,11 @@ import (
 )
 
 var (
-	gob_path = flag.String("gob_path", default_path, "Path to the gob file")
+	stateFile_path = flag.String("state_file_path", default_path, "Path to the state file")
 
 	default_path = fmt.Sprintf("%s/.apptail.gob", os.Getenv("HOME"))
+
+	debug = flag.Bool("debug", false, "debugger")
 )
 
 func main() {
@@ -29,8 +31,8 @@ func main() {
 
 	apptail.LoadConfig()
 
-	fstorage := storage.NewFileStorage(*gob_path)
-	tracker := storage.NewTracker(fstorage)
+	fstorage := storage.NewFileStorage(*stateFile_path)
+	tracker := storage.NewTracker(fstorage, *debug)
 	tracker.LoadTailers()
 
 	interval := time.Duration(int64(apptail.GetConfig().PersistPositionIntervalSeconds))
