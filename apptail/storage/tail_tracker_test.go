@@ -231,12 +231,11 @@ func Test_getEntriesToCleanUp_WhenCalledWithTwoValidMaps_ItShouldReturnInvalidIn
 
 	invalidInstances := getInvalidInstances(map_one, map_two)
 
-	if len(invalidInstances) < 1 {
-		t.Fail()
+	if _, exist := invalidInstances["docker3"]; exist {
+		t.Log("pass")
 
 	} else {
-		t.Log("passed")
+		t.Fail()
 
 	}
-
 }

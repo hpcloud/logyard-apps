@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"testing"
 )
