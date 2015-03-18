@@ -22,7 +22,7 @@ var (
 
 	default_path = fmt.Sprintf("%s/.apptail.gob", os.Getenv("HOME"))
 
-	debug = flag.Bool("debug", true, "debugger")
+	debug = flag.Bool("debug", false, "debugger")
 )
 
 func main() {

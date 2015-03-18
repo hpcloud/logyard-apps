@@ -7,17 +7,21 @@ import (
 )
 
 var (
-	test_path = fmt.Sprintf("%s/.apptail.gob", os.Getenv("HOME"))
+	test_path = fmt.Sprintf("%s/.apptail.gob.test", os.Getenv("HOME"))
 )
 
-type TestInterFace struct {
+type TestInterface struct {
 	Value string
 }
 
 func TestLoad_CalledWithCorrectArgs_IfFileNotExistItCreatesOne(t *testing.T) {
+
+	// test clean up
+	defer cleanUp()
+
 	storage := NewFileStorage(test_path)
 
-	var toLoad TestInterFace
+	var toLoad TestInterface
 
 	storage.Load(&toLoad)
 
@@ -27,17 +31,16 @@ func TestLoad_CalledWithCorrectArgs_IfFileNotExistItCreatesOne(t *testing.T) {
 		t.Log("pass")
 
 	}
-
-	// test clean up
-	cleanUp()
-
 }
 
 func TestLoad_CalledWhenFileExist_ItTriesToDecodeGivenInterface(t *testing.T) {
 
+	// test clean up
+	defer cleanUp()
+
 	storage := NewFileStorage(test_path)
 
-	testInterface := &TestInterFace{Value: "Hello Wrold"}
+	testInterface := &TestInterface{Value: "Hello Wrold"}
 
 	bytes, _ := storage.Encode(testInterface)
 	err := storage.Write(bytes)
@@ -47,7 +50,7 @@ func TestLoad_CalledWhenFileExist_ItTriesToDecodeGivenInterface(t *testing.T) {
 
 	}
 
-	var toLoad TestInterFace
+	var toLoad TestInterface
 
 	storage.Load(&toLoad)
 
@@ -58,14 +61,16 @@ func TestLoad_CalledWhenFileExist_ItTriesToDecodeGivenInterface(t *testing.T) {
 		t.Fail()
 
 	}
-	cleanUp()
 
 }
 
 func TestWrite_CalledWithACorrectArgs_ItShouldCreateFileIfNotExist(t *testing.T) {
+	// test clean up
+	defer cleanUp()
+
 	storage := NewFileStorage(test_path)
 
-	testInterface := &TestInterFace{Value: "Hello Wrold"}
+	testInterface := &TestInterface{Value: "Hello Wrold"}
 
 	bytes, _ := storage.Encode(testInterface)
 
@@ -77,8 +82,6 @@ func TestWrite_CalledWithACorrectArgs_ItShouldCreateFileIfNotExist(t *testing.T)
 		t.Log("pass")
 
 	}
-
-	cleanUp()
 }
 
 func cleanUp() {

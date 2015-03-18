@@ -205,6 +205,7 @@ func (t *tracker) Commit() error {
 }
 
 func (t *tracker) dumpState(ops string) {
+	// Important to wrap this in a mutex since it's accessing shared resource
 	if t.debug {
 		for k, v := range t.Cached.Instances {
 			message := fmt.Sprintf("[%s] ContainerId: %s", ops, k)
