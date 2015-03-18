@@ -20,6 +20,8 @@ import (
 	"time"
 )
 
+const ID_LENGTH = 12
+
 // Instance is the NATS message sent by dea_ng to notify of new instances.
 type Instance struct {
 	AppGUID  string
@@ -67,8 +69,6 @@ func (instance *Instance) Tail(tracker storage.Tracker) {
 }
 
 func (instance *Instance) getShortDockerId() string {
-	const ID_LENGTH = 12
-
 	return instance.DockerId[:ID_LENGTH]
 }
 

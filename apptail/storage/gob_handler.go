@@ -42,6 +42,7 @@ func (s *FileStorage) Encode(data interface{}) ([]byte, error) {
 func (s *FileStorage) Write(buf []byte) error {
 
 	if err := ioutil.WriteFile(s.file_path, buf, FILE_MODE); err != nil {
+
 		return err
 
 	}
@@ -54,16 +55,25 @@ func (s *FileStorage) Write(buf []byte) error {
 }
 
 func (s *FileStorage) Load(e interface{}) {
-	n, err := ioutil.ReadFile(s.file_path)
-	if err != nil {
-		log.Error(err)
 
-	}
-	p := bytes.NewBuffer(n)
-	dec := gob.NewDecoder(p)
-	err = dec.Decode(e)
-	if err != nil {
-		log.Error(err)
+	if _, err := os.Stat(s.file_path); os.IsNotExist(err) {
+		log.Infof("Creating %s since it does not exist", s.file_path)
+		_, err = os.Create(s.file_path)
 
+	} else {
+		n, err := ioutil.ReadFile(s.file_path)
+		if err != nil {
+
+			log.Error(err)
+
+		}
+		p := bytes.NewBuffer(n)
+		dec := gob.NewDecoder(p)
+		err = dec.Decode(e)
+		if err != nil {
+			log.Error(err)
+
+		}
 	}
+
 }

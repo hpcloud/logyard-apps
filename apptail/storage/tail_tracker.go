@@ -40,10 +40,6 @@ type tracker struct {
 	debug         bool
 }
 
-var (
-	MinIOTicker = 5 * time.Second
-)
-
 func NewTracker(s Storage, debug bool) Tracker {
 
 	return &tracker{
@@ -59,11 +55,6 @@ func NewTracker(s Storage, debug bool) Tracker {
 }
 
 func (t *tracker) StartSubmissionTimer(persistInterval time.Duration) {
-	if persistInterval.Seconds() <= MinIOTicker.Seconds() {
-		seconds := persistInterval / (1000 * time.Millisecond)
-		log.Warnf("IMPORTANT: Setting tail persist interval to %ds will increase your IO Rate", seconds)
-
-	}
 	ticker := time.NewTicker(persistInterval)
 	go func() {
 		for {
@@ -87,10 +78,9 @@ func (t *tracker) RegisterInstance(instKey string) {
 	t.mux.Lock()
 	if _, instance_exist := t.Cached.Instances[instKey]; !instance_exist {
 		t.Cached.Instances[instKey] = TailNode{}
-		if t.debug {
 
-			t.dumpState("Current Status")
-		}
+		t.dumpState("Current Status")
+
 	}
 	t.mux.Unlock()
 }
@@ -122,10 +112,7 @@ func (t *tracker) InitializeChildNode(instKey string, childkey string, offSet in
 		if _, childNode_exist := tailNode[childkey]; !childNode_exist {
 			tailNode[childkey] = &BoxedInt64{V: offSet}
 			t.Cached.Instances[instKey] = tailNode
-			if t.debug {
-
-				t.dumpState("Current Status")
-			}
+			t.dumpState("Current Status")
 
 		}
 	}
@@ -157,22 +144,22 @@ func (t *tracker) CleanUp(validIds map[string]bool) {
 		cachedIds[key] = true
 
 	}
-	instancesToRemove := getEntriesToCleanUp(cachedIds, validIds)
+	instancesToRemove := getInvalidInstances(cachedIds, validIds)
 	for key := range instancesToRemove {
 		delete(t.Cached.Instances, key)
 
 	}
-	if t.debug {
-		t.dumpState("Cleaned up")
 
-	}
+	t.dumpState("Cleaned up")
 
 	t.mux.Unlock()
 
 }
 
 func (t *tracker) Remove(key string) {
-	log.Infof("Removing the following key %s from cached instances", key)
+	if t.debug {
+		log.Infof("Removing the following key %s from cached instances", key)
+	}
 	t.mux.Lock()
 	delete(t.Cached.Instances, key)
 	t.mux.Unlock()
@@ -185,12 +172,7 @@ func (t *tracker) Remove(key string) {
 func (t *tracker) LoadTailers() {
 	t.mux.Lock()
 	t.storage.Load(&t.Cached)
-
-	if t.debug {
-		t.dumpState("Loaded")
-
-	}
-
+	t.dumpState("Loaded")
 	t.mux.Unlock()
 }
 
@@ -210,12 +192,7 @@ func (t *tracker) Commit() error {
 
 	}
 
-	if t.debug {
-		t.mux.Lock()
-		t.dumpState("Storing")
-		t.mux.Unlock()
-
-	}
+	//t.dumpState("Storing")
 
 	t.writeMux.Lock()
 	err = t.storage.Write(bytes)
@@ -228,49 +205,26 @@ func (t *tracker) Commit() error {
 }
 
 func (t *tracker) dumpState(ops string) {
+	if t.debug {
+		for k, v := range t.Cached.Instances {
+			message := fmt.Sprintf("[%s] ContainerId: %s", ops, k)
+			for fname, buffer := range v {
 
-	for k, v := range t.Cached.Instances {
-		message := fmt.Sprintf("[%s] ContainerId: %s", ops, k)
-		for fname, buffer := range v {
+				log.Infof(message+" File: %s --> TailOffset: %d", fname, buffer)
 
-			log.Infof(message+" File: %s --> TailOffset: %d", fname, buffer)
+			}
 
 		}
-
 	}
 }
 
-func getEntriesToCleanUp(instances map[string]bool, cleanUps map[string]bool) map[string]bool {
-
-	mapToHash := make(map[string]bool)
-	mapToSearch := make(map[string]bool)
-
-	if len(instances) < len(cleanUps) {
-		mapToHash = instances
-		mapToSearch = cleanUps
-
-	} else {
-		mapToHash = cleanUps
-		mapToSearch = instances
-
-	}
-
-	intersection := make(map[string]bool)
-	hashedMap := make(map[string]bool)
-
-	for key, val := range mapToHash {
-		hashedMap[key] = val
-
-	}
-
-	for k2, v2 := range mapToSearch {
-		if _, exist := hashedMap[k2]; !exist {
-			intersection[k2] = v2
-
+func getInvalidInstances(dockerIds map[string]bool, allInstances map[string]bool) map[string]bool {
+	invalidInstances := make(map[string]bool)
+	for id, _ := range dockerIds {
+		if _, exist := allInstances[id]; !exist {
+			invalidInstances[id] = true
 		}
-
 	}
-
-	return intersection
+	return invalidInstances
 
 }

@@ -229,38 +229,13 @@ func Test_getEntriesToCleanUp_WhenCalledWithTwoValidMaps_ItShouldReturnAnInterse
 		"docker2": true,
 	}
 
-	intersection := getEntriesToCleanUp(map_two, map_one)
+	intersection := getInvalidInstances(map_one, map_two)
 
 	if len(intersection) < 1 {
 		t.Fail()
 
 	} else {
 		t.Log("passed")
-
-	}
-
-}
-
-func Test_getEntriesToCleanUp_WhenCalledWithTwoValidMaps_ItShouldHandleAnyOrderOfArguments(t *testing.T) {
-	map_one := map[string]bool{
-		"docker1": true,
-		"docker2": true,
-		"docker3": true,
-	}
-
-	map_two := map[string]bool{
-		"docker1": true,
-		"docker2": true,
-	}
-
-	intersection := getEntriesToCleanUp(map_two, map_one)
-	second_intersection := getEntriesToCleanUp(map_one, map_two)
-
-	if len(intersection) == len(second_intersection) {
-		t.Log("pass")
-
-	} else {
-		t.Fail()
 
 	}
 

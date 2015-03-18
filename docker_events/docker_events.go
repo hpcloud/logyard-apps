@@ -9,6 +9,13 @@ import (
 	"time"
 )
 
+const ID_LENGTH = 12
+
+var (
+	events     = "http://localhost:4243/events"
+	containers = "http://localhost:4243/containers/json"
+)
+
 type Event struct {
 	Id     string `json:"id"`
 	Status string `json:"status"`
@@ -46,7 +53,7 @@ func Stream() chan *Event {
 func getDockerEvents(retries int) *http.Response {
 	c := http.Client{}
 	for attempt := 0; attempt < retries; attempt++ {
-		res, err := c.Get("http://localhost:4243/events")
+		res, err := c.Get(events)
 		if err != nil {
 			if (attempt + 1) == retries {
 				log.Fatalf("Failed to read from docker daemon; giving up retrying: %v", err)
@@ -65,14 +72,11 @@ type Docker struct {
 }
 
 func GetLiveDockerContainers(retries int) map[string]bool {
-
-	const ID_LENGTH = 12
-
 	allDockerIds := make(map[string]bool)
 	var httpResByte []byte
 	c := http.Client{}
 	for attempt := 0; attempt < retries; attempt++ {
-		res, err := c.Get("http://localhost:4243/containers/json")
+		res, err := c.Get(containers)
 		defer res.Body.Close()
 		if err != nil {
 			if (attempt + 1) == retries {
@@ -83,14 +87,14 @@ func GetLiveDockerContainers(retries int) map[string]bool {
 		} else {
 			httpResByte, err = ioutil.ReadAll(res.Body)
 			if err != nil {
-				panic(err)
+				log.Fatal(err)
 
 			}
 			var jsonData []Docker
 			err = json.Unmarshal([]byte(httpResByte), &jsonData)
 
 			if err != nil {
-				panic(err)
+				log.Fatal(err)
 
 			}
 

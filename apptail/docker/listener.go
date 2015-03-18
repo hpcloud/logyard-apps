@@ -9,6 +9,7 @@ import (
 )
 
 const ID_LENGTH = 12
+const RETRY = 3
 
 type dockerListener struct {
 	waiters map[string]chan bool
@@ -68,8 +69,7 @@ func (l *dockerListener) Listen() {
 }
 
 func (l *dockerListener) TrackerCleanUp(tracker storage.Tracker) {
-	retry := 3
-	all_containers := docker_events.GetLiveDockerContainers(retry)
+	all_containers := docker_events.GetLiveDockerContainers(RETRY)
 	if len(all_containers) > 0 {
 		tracker.CleanUp(all_containers)
 
