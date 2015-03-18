@@ -12,8 +12,8 @@ import (
 const ID_LENGTH = 12
 
 var (
-	events     = "http://localhost:4243/events"
-	containers = "http://localhost:4243/containers/json"
+	events_url     = "http://localhost:4243/events"
+	containers_url = "http://localhost:4243/containers/json"
 )
 
 type Event struct {
@@ -53,7 +53,7 @@ func Stream() chan *Event {
 func getDockerEvents(retries int) *http.Response {
 	c := http.Client{}
 	for attempt := 0; attempt < retries; attempt++ {
-		res, err := c.Get(events)
+		res, err := c.Get(events_url)
 		if err != nil {
 			if (attempt + 1) == retries {
 				log.Fatalf("Failed to read from docker daemon; giving up retrying: %v", err)
@@ -76,7 +76,7 @@ func GetLiveDockerContainers(retries int) map[string]bool {
 	var httpResByte []byte
 	c := http.Client{}
 	for attempt := 0; attempt < retries; attempt++ {
-		res, err := c.Get(containers)
+		res, err := c.Get(containers_url)
 		defer res.Body.Close()
 		if err != nil {
 			if (attempt + 1) == retries {

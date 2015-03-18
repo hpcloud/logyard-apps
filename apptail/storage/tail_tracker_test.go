@@ -216,7 +216,7 @@ func TestCleanUp_WhenCalledWithAListOfValidIds_ShouldRemoveOldContainerId(t *tes
 
 }
 
-func Test_getEntriesToCleanUp_WhenCalledWithTwoValidMaps_ItShouldReturnAnIntersection(t *testing.T) {
+func Test_getEntriesToCleanUp_WhenCalledWithTwoValidMaps_ItShouldReturnInvalidInstances(t *testing.T) {
 
 	map_one := map[string]bool{
 		"docker1": true,
@@ -229,9 +229,9 @@ func Test_getEntriesToCleanUp_WhenCalledWithTwoValidMaps_ItShouldReturnAnInterse
 		"docker2": true,
 	}
 
-	intersection := getInvalidInstances(map_one, map_two)
+	invalidInstances := getInvalidInstances(map_one, map_two)
 
-	if len(intersection) < 1 {
+	if len(invalidInstances) < 1 {
 		t.Fail()
 
 	} else {
