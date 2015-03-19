@@ -18,4 +18,4 @@ read_limit: 16
 
 # Interval in seconds, which allows to retain the position of cursor in tail
 # while restarting apptail/crashing
-persist_position_interval_seconds: 8
+persist_position_interval_seconds: 1
