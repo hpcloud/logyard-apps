@@ -39,6 +39,11 @@ func (f *FakeFileStorage) Write(buf []byte) error {
 	return nil
 }
 
-func (f *FakeFileStorage) Load(data interface{}) {
+func (f *FakeFileStorage) Load(data interface{}) error {
 	IsLoadCalled = true
+	if ThrowError {
+		return errors.New("something went wrong while trying to Load data")
+
+	}
+	return nil
 }

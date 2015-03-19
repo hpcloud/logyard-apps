@@ -35,7 +35,6 @@ type tracker struct {
 	storage       Storage
 	Cached        *Tailer // do not expose this, it should ONLY be updated via Tracker methods
 	mux           *sync.Mutex
-	writeMux      *sync.Mutex
 	timerStopChan chan struct{} // used to send quit signal to time,
 	debug         bool
 }
@@ -43,9 +42,8 @@ type tracker struct {
 func NewTracker(s Storage, debug bool) Tracker {
 
 	return &tracker{
-		storage:  s,
-		mux:      &sync.Mutex{},
-		writeMux: &sync.Mutex{},
+		storage: s,
+		mux:     &sync.Mutex{},
 		Cached: &Tailer{
 			Instances: make(map[string]TailNode),
 		},
@@ -122,10 +120,10 @@ func (t *tracker) InitializeChildNode(instKey string, childkey string, offSet in
 func (t *tracker) GetFileCachedOffset(instkey string, fname string) int64 {
 	var offset int64
 	t.mux.Lock()
+	defer t.mux.Unlock()
 	if tailNode, instance_exist := t.Cached.Instances[instkey]; instance_exist {
 		offset = atomic.LoadInt64(&tailNode[fname].V)
 	}
-	t.mux.Unlock()
 	return offset
 }
 
@@ -171,7 +169,7 @@ func (t *tracker) Remove(key string) {
 
 func (t *tracker) LoadTailers() {
 	t.mux.Lock()
-	t.storage.Load(&t.Cached)
+	_ = t.storage.Load(&t.Cached)
 	t.dumpState("Loaded")
 	t.mux.Unlock()
 }
@@ -193,14 +191,11 @@ func (t *tracker) Commit() error {
 	}
 
 	//t.dumpState("Storing")
-
-	t.writeMux.Lock()
 	err = t.storage.Write(bytes)
 	if err != nil {
 		return err
 
 	}
-	t.writeMux.Unlock()
 	return nil
 }
 

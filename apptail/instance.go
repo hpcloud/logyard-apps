@@ -21,6 +21,7 @@ import (
 )
 
 const ID_LENGTH = 12
+const INITIAL_OFFSET = 0
 
 // Instance is the NATS message sent by dea_ng to notify of new instances.
 type Instance struct {
@@ -110,7 +111,7 @@ func (instance *Instance) tailFile(name, filename string, stopCh chan bool, trac
 
 	// IMPORTANT: this registration happens everytime app restarts
 	if shouldInitialize {
-		tracker.InitializeChildNode(instance.getShortDockerId(), filename, t.Location.Offset)
+		tracker.InitializeChildNode(instance.getShortDockerId(), filename, INITIAL_OFFSET)
 	}
 
 	if err != nil {

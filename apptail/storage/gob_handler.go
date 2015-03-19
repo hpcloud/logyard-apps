@@ -6,17 +6,19 @@ import (
 	"github.com/ActiveState/log"
 	"io/ioutil"
 	"os"
+	"sync"
 )
 
 // exposing these for testing
 type Storage interface {
 	Encode(data interface{}) ([]byte, error)
-	Load(data interface{})
+	Load(data interface{}) error
 	Write(buf []byte) error
 }
 
 type FileStorage struct {
 	file_path string
+	writeLock *sync.Mutex
 }
 
 const FILE_MODE = 0666
@@ -24,6 +26,7 @@ const FILE_MODE = 0666
 func NewFileStorage(path string) Storage {
 	return &FileStorage{
 		file_path: path,
+		writeLock: &sync.Mutex{},
 	}
 
 }
@@ -40,7 +43,8 @@ func (s *FileStorage) Encode(data interface{}) ([]byte, error) {
 }
 
 func (s *FileStorage) Write(buf []byte) error {
-
+	s.writeLock.Lock()
+	defer s.writeLock.Unlock()
 	if err := ioutil.WriteFile(s.file_path, buf, FILE_MODE); err != nil {
 
 		return err
@@ -54,9 +58,10 @@ func (s *FileStorage) Write(buf []byte) error {
 	return nil
 }
 
-func (s *FileStorage) Load(e interface{}) {
+func (s *FileStorage) Load(e interface{}) error {
 
-	if _, err := os.Stat(s.file_path); os.IsNotExist(err) {
+	var err error
+	if _, err = os.Stat(s.file_path); os.IsNotExist(err) {
 		log.Infof("Creating %s since it does not exist", s.file_path)
 		_, err = os.Create(s.file_path)
 
@@ -75,5 +80,5 @@ func (s *FileStorage) Load(e interface{}) {
 
 		}
 	}
-
+	return err
 }

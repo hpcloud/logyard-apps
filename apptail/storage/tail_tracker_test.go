@@ -101,7 +101,7 @@ func TestUpdate_CalledWithNonExistingInstanceKey_ItSholdNotIncrementOffset(t *te
 	tracker.InitializeChildNode(instanceKey, childKey, offset)
 
 	currentOffset := tracker.GetFileCachedOffset("badInstanceKey", childKey)
-
+	// the current offset should not match the offset since the instance is NOT registered
 	if currentOffset == offset {
 		t.Fail()
 
@@ -207,6 +207,33 @@ func TestCleanUp_WhenCalledWithAListOfValidIds_ShouldRemoveOldContainerId(t *tes
 	tracker.CleanUp(validIds)
 
 	if tracker.IsInstanceRegistered("dockerId3") {
+		t.Fail()
+
+	} else {
+		t.Log("pass")
+
+	}
+
+}
+
+func TestCleanUp_WhenCalledWithAListOfValidIds_ShouldNOTRemoveValidIds(t *testing.T) {
+	fakeFileStorage := NewFakeFileStorage("somepath")
+	tracker := NewTracker(fakeFileStorage, debug)
+
+	validIds := make(map[string]bool)
+	validIds["dockerId1"] = true
+	validIds["dockerId2"] = true
+	validIds["dockerId3"] = true
+
+	tracker.RegisterInstance("dockerId1")
+	tracker.RegisterInstance("dockerId2")
+
+	tracker.CleanUp(validIds)
+
+	first_instance := tracker.IsInstanceRegistered("dockerId1")
+	second_instance := tracker.IsInstanceRegistered("dockerId2")
+
+	if !first_instance || !second_instance {
 		t.Fail()
 
 	} else {
