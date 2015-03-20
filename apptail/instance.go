@@ -61,12 +61,11 @@ func (instance *Instance) Tail(tracker storage.Tracker) {
 		go instance.tailFile(name, filename, stopCh, tracker)
 	}
 
-	go func() {
-		docker.DockerListener.BlockUntilContainerStops(instance.DockerId)
-		log.Infof("Container for %v exited", instance.Identifier())
-		close(stopCh)
-		tracker.Remove(shortDockerId)
-	}()
+	docker.DockerListener.BlockUntilContainerStops(instance.DockerId)
+	log.Infof("Container for %v exited", instance.Identifier())
+	close(stopCh)
+	tracker.Remove(shortDockerId)
+
 }
 
 func (instance *Instance) getShortDockerId() string {

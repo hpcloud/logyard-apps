@@ -94,3 +94,4 @@ fmt:
 
 dev-test:
 	go test $(GOARGS) $(GOARGS_TEST) $(NAME)/...
+
