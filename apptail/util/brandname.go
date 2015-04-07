@@ -28,7 +28,3 @@ func loadConfig() {
 func GetBrandName() string {
 	return getConfig().Info.Name
 }
-
-func init() {
-	loadConfig()
-}

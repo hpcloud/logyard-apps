@@ -13,6 +13,8 @@ import (
 	"github.com/ActiveState/tail"
 	"github.com/ActiveState/zmqpubsub"
 	"logyard"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,15 +23,16 @@ import (
 
 // Instance is the NATS message sent by dea_ng to notify of new instances.
 type Instance struct {
-	AppGUID  string
-	AppName  string
-	AppSpace string
-	Type     string
-	Index    int
-	DockerId string `json:"docker_id"`
-	RootPath string
-	LogFiles map[string]string
-	pubch    *pubchannel.PubChannel
+	AppGUID       string
+	AppName       string
+	AppSpace      string
+	Type          string
+	Index         int
+	DockerId      string `json:"docker_id"`
+	RootPath      string
+	LogFiles      map[string]string
+	DockerStreams bool `json:"docker_streams"`
+	pubch         *pubchannel.PubChannel
 }
 
 func (instance *Instance) Identifier() string {
@@ -51,6 +54,11 @@ func (instance *Instance) Tail() {
 
 	for name, filename := range logfiles {
 		go instance.tailFile(name, filename, stopCh)
+	}
+
+	if instance.DockerStreams {
+		go instance.tailStream("stdout", stopCh)
+		go instance.tailStream("stderr", stopCh)
 	}
 
 	go func() {
@@ -89,6 +97,11 @@ func (instance *Instance) tailFile(name, filename string, stopCh chan bool) {
 		return
 	}
 
+	instance.readFromTail(t, pub, name, stopCh)
+}
+
+func (instance *Instance) readFromTail(t *tail.Tail, pub *zmqpubsub.Publisher, name string, stopCh chan bool) {
+	var err error
 FORLOOP:
 	for {
 		select {
@@ -110,6 +123,60 @@ FORLOOP:
 	}
 
 	log.Infof("Completed tailing %v log for %v", name, instance.Identifier())
+}
+
+func (instance *Instance) tailStream(stream string, stopCh chan bool) {
+	var err error
+
+	pub := logyard.Broker.NewPublisherMust()
+	defer pub.Stop()
+
+	limit, err := instance.getReadLimit(pub, stream, "")
+	if err != nil {
+		log.Warn(err)
+		instance.SendTimelineEvent("WARN -- %v", err)
+		return
+	}
+
+	rateLimiter := GetConfig().GetLeakyBucket()
+
+	reqUrl, err := url.Parse(fmt.Sprintf("http://localhost:4243/containers/%s/logs", instance.DockerId))
+	if err != nil {
+		log.Warn(err)
+		return
+	}
+	q := reqUrl.Query()
+	q.Set(stream, "true")
+	q.Set("follow", "true")
+	reqUrl.RawQuery = q.Encode()
+
+	resp, err := http.Get(reqUrl.String())
+	if err != nil {
+		log.Warn(err)
+		instance.SendTimelineEvent("WARN -- %v", err)
+		return
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
+		log.Warnf("HTTP error response %v from %v", resp.Status, reqUrl)
+		return
+	}
+
+	t, err := tail.TailReader(util.WrapReadSeekClose(resp.Body), tail.Config{
+		MaxLineSize: GetConfig().MaxRecordSize,
+		MustExist:   false,
+		Follow:      true,
+		Location:    &tail.SeekInfo{-limit, os.SEEK_END},
+		ReOpen:      false,
+		Poll:        false,
+		RateLimiter: rateLimiter})
+	if err != nil {
+		log.Warnf("Cannot tail docker stream (%s); %s", stream, err)
+		instance.SendTimelineEvent("ERROR -- Cannot tail file (%s); %s", stream, err)
+		return
+	}
+
+	instance.readFromTail(t, pub, stream, stopCh)
 }
 
 func (instance *Instance) getLogFiles() map[string]string {
@@ -135,8 +202,6 @@ func (instance *Instance) getLogFiles() map[string]string {
 					parts := strings.SplitN(f, "=", 2)
 					logfiles[parts[0]] = parts[1]
 				}
-			} else {
-				log.Errorf("Expected env $STACKATO_LOG_FILES not found in docker image")
 			}
 		}
 	}
@@ -177,7 +242,7 @@ func (instance *Instance) getLogFiles() map[string]string {
 		logfilesSecure[name] = fullpath
 	}
 
-	if len(logfilesSecure) == 0 {
+	if len(logfilesSecure) == 0 && !instance.DockerStreams {
 		instance.SendTimelineEvent("ERROR -- No valid log files detected for tailing")
 	}
 
@@ -194,18 +259,20 @@ func (instance *Instance) getReadLimit(
 		panic("invalid value for `read_limit' in apptail config")
 	}
 
-	fi, err := os.Stat(filename)
-	if err != nil {
-		return -1, fmt.Errorf("Cannot stat file (%s); %s", filename, err)
-	}
-	size := fi.Size()
 	limit := filesizeLimit
-	if size > filesizeLimit {
-		instance.SendTimelineEvent(
-			"Skipping much of a large log file (%s); size (%v bytes) > read_limit (%v bytes)",
-			logname, size, filesizeLimit)
-	} else {
-		limit = size
+	if len(filename) != 0 {
+		fi, err := os.Stat(filename)
+		if err != nil {
+			return -1, fmt.Errorf("Cannot stat file (%s); %s", filename, err)
+		}
+		size := fi.Size()
+		if size > filesizeLimit {
+			instance.SendTimelineEvent(
+				"Skipping much of a large log file (%s); size (%v bytes) > read_limit (%v bytes)",
+				logname, size, filesizeLimit)
+		} else {
+			limit = size
+		}
 	}
 	return limit, nil
 }
