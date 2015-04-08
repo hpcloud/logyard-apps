@@ -22,8 +22,12 @@ import (
 	"time"
 )
 
-const ID_LENGTH = 12
-const INITIAL_OFFSET = 0
+const (
+	ID_LENGTH      = 12
+	INITIAL_OFFSET = 0
+	STDOUT         = "stdout"
+	STDERR         = "stderr"
+)
 
 // Instance is the NATS message sent by dea_ng to notify of new instances.
 type Instance struct {
@@ -61,9 +65,11 @@ func (instance *Instance) Tail(tracker storage.Tracker) {
 	tracker.RegisterInstance(shortDockerId)
 
 	for name, filename := range logfiles {
-		go instance.tailFile(name, filename, stopCh, tracker)
-		if instance.DockerStreams {
-			go instance.tailStream(name, stopCh, filename, tracker)
+		// call tailStream for standard docker logs and tailFile for user custom logs
+		if instance.DockerStreams && (name == STDOUT || name == STDERR) {
+			go instance.tailStream(name, filename, stopCh, tracker)
+		} else {
+			go instance.tailFile(name, filename, stopCh, tracker)
 		}
 	}
 
@@ -130,38 +136,7 @@ func (instance *Instance) tailFile(name, filename string, stopCh chan bool, trac
 	instance.readFromTail(t, pub, name, stopCh, filename, tracker)
 }
 
-func (instance *Instance) readFromTail(t *tail.Tail, pub *zmqpubsub.Publisher, name string, stopCh chan bool, filename string, tracker storage.Tracker) {
-	var err error
-FORLOOP:
-	for {
-		select {
-		case line, ok := <-t.Lines:
-			if !ok {
-				err = t.Wait()
-				break FORLOOP
-			}
-			currentOffset, err := t.Tell()
-			if err != nil {
-				log.Error(err.Error())
-
-			}
-			tracker.Update(instance.getShortDockerId(), filename, currentOffset)
-			instance.publishLine(pub, name, line)
-		case <-stopCh:
-			err = t.Stop()
-			break FORLOOP
-		}
-	}
-
-	if err != nil {
-		log.Warn(err)
-		instance.SendTimelineEvent("WARN -- Error tailing file (%s); %s", name, err)
-	}
-
-	log.Infof("Completed tailing %v log for %v", name, instance.Identifier())
-}
-
-func (instance *Instance) tailStream(stream string, stopCh chan bool, filename string, tracker storage.Tracker) {
+func (instance *Instance) tailStream(stream string, filename string, stopCh chan bool, tracker storage.Tracker) {
 	var err error
 
 	pub := logyard.Broker.NewPublisherMust()
@@ -193,7 +168,7 @@ func (instance *Instance) tailStream(stream string, stopCh chan bool, filename s
 		return
 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusBadRequest {
 		log.Warnf("HTTP error response %v from %v", resp.Status, reqUrl)
 		return
 	}
@@ -213,6 +188,37 @@ func (instance *Instance) tailStream(stream string, stopCh chan bool, filename s
 	}
 
 	instance.readFromTail(t, pub, stream, stopCh, filename, tracker)
+}
+
+func (instance *Instance) readFromTail(t *tail.Tail, pub *zmqpubsub.Publisher, name string, stopCh chan bool, filename string, tracker storage.Tracker) {
+	var err error
+FORLOOP:
+	for {
+		select {
+		case line, ok := <-t.Lines:
+			if !ok {
+				err = t.Wait()
+				break FORLOOP
+			}
+			currentOffset, err := t.Tell()
+			if err != nil {
+				log.Error(err.Error())
+
+			}
+			tracker.Update(instance.getShortDockerId(), filename, currentOffset)
+			instance.publishLine(pub, name, line)
+		case <-stopCh:
+			err = t.Stop()
+			break FORLOOP
+		}
+	}
+
+	if err != nil {
+		log.Warn(err)
+		instance.SendTimelineEvent("WARN -- Error tailing file (%s); %s", name, err)
+	}
+
+	log.Infof("Completed tailing %v log for %v", name, instance.Identifier())
 }
 
 func (instance *Instance) getLogFiles() map[string]string {
