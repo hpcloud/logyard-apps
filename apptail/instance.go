@@ -61,11 +61,10 @@ func (instance *Instance) Tail() {
 		go instance.tailStream("stderr", stopCh)
 	}
 
-	go func() {
-		docker.DockerListener.BlockUntilContainerStops(instance.DockerId)
-		log.Infof("Container for %v exited", instance.Identifier())
-		close(stopCh)
-	}()
+	docker.DockerListener.BlockUntilContainerStops(instance.DockerId)
+	log.Infof("Container for %v exited", instance.Identifier())
+	close(stopCh)
+
 }
 
 func (instance *Instance) tailFile(name, filename string, stopCh chan bool) {
