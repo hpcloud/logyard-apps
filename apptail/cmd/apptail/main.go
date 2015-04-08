@@ -1,28 +1,52 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"github.com/ActiveState/log"
 	"github.com/ActiveState/logyard-apps/apptail"
 	"github.com/ActiveState/logyard-apps/apptail/docker"
 	apptail_event "github.com/ActiveState/logyard-apps/apptail/event"
+	"github.com/ActiveState/logyard-apps/apptail/storage"
 	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/stackato-go/server"
 	"github.com/alecthomas/gozmq"
 	uuid "github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"os"
+
 	"runtime"
 	"sync"
+
+	"time"
+)
+
+var (
+	stateFile_path = flag.String("state_file_path", default_path, "Path to the state file")
+
+	default_path = fmt.Sprintf("%s/.apptail.gob", os.Getenv("HOME"))
+
+	debug = flag.Bool("debug", false, "debugger")
 )
 
 type StartedInstance map[string]int
 
 func main() {
+	flag.Parse()
 	go common.RegisterTailCleanup()
+
+	apptail.LoadConfig()
+
+	fstorage := storage.NewFileStorage(*stateFile_path)
+	tracker := storage.NewTracker(fstorage, *debug)
+	tracker.LoadTailers()
+
+	interval := time.Duration(int64(apptail.GetConfig().PersistPositionIntervalSeconds))
+	go tracker.StartSubmissionTimer(interval * time.Second)
+
 	major, minor, patch := gozmq.Version()
 	log.Infof("Starting apptail (zeromq %d.%d.%d)", major, minor, patch)
 
-	apptail.LoadConfig()
 	log.Infof("Config: %+v\n", apptail.GetConfig())
 
 	uid := getUID()
@@ -35,13 +59,15 @@ func main() {
 	started_instances := StartedInstance{}
 
 	natsclient.Subscribe("logyard."+uid+".newinstance", func(instance *apptail.Instance) {
+
 		n++
 		if started_instances.checkInstanceAndUpdate(n, instance.DockerId, mux) {
 			go func() {
-				instance.Tail()
+				instance.Tail(tracker)
 				started_instances.delete(instance.DockerId, mux)
 			}()
 		}
+
 	})
 
 	natsclient.Publish("logyard."+uid+".start", []byte("{}"))
@@ -49,9 +75,13 @@ func main() {
 
 	go docker.DockerListener.Listen()
 
+	// clean up the cache after restart
+	docker.DockerListener.TrackerCleanUp(tracker)
+
 	server.MarkRunning("apptail")
 
 	apptail_event.MonitorCloudEvents()
+
 }
 
 func (s *StartedInstance) checkInstanceAndUpdate(n int, dockerId string, mux *sync.Mutex) bool {

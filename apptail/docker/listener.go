@@ -2,6 +2,7 @@ package docker
 
 import (
 	"github.com/ActiveState/log"
+	"github.com/ActiveState/logyard-apps/apptail/storage"
 	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/logyard-apps/docker_events"
 	"runtime"
@@ -9,6 +10,7 @@ import (
 )
 
 const ID_LENGTH = 12
+const RETRY = 3
 
 type dockerListener struct {
 	waiters map[string]chan bool
@@ -70,4 +72,13 @@ func (l *dockerListener) Listen() {
 		}
 		l.mux.Unlock()
 	}
+}
+
+func (l *dockerListener) TrackerCleanUp(tracker storage.Tracker) {
+	all_containers := docker_events.GetLiveDockerContainers(RETRY)
+	if len(all_containers) > 0 {
+		tracker.CleanUp(all_containers)
+
+	}
+
 }
