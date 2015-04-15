@@ -1,5 +1,5 @@
 #
-# Makefile for stackato-logyard-apps
+# Makefile for stackato-logyard-apps-lgr
 #
 # Used solely by packaging systems.
 # Must support targets "all", "install", "uninstall".
@@ -20,7 +20,7 @@
 #   rm -rf .gopath; STACKATO_PKG_BRANCH=mybranch make
 #
 
-NAME=github.com/ActiveState/logyard-apps
+NAME=github.com/ActiveState/logyard-apps-lgr
 
 SRCDIR=src/$(NAME)
 
@@ -38,24 +38,23 @@ INSTBINDIR=$(INSTDIR)$(INSTALLHOME)/bin
 BUILDGOPATH=$(shell pwd)/.gopath
 
 GOARGS=-v -tags zmq_3_x
+GOARGS-RACE-DETECTION=-v -race -tags zmq_3_x
 
-GOARGS_TEST=-race
-
-export PATH := /usr/local/go/bin:$(BUILDGOPATH)/bin/:$(PATH)
+export PATH :=${GOROOT}/bin:$(BUILDGOPATH)/bin/:$(PATH)
 
 all:	repos compile
 
 repos:
 	mkdir -p $(BUILDGOPATH)/src/$(NAME)
 	git archive HEAD | tar -x -C $(BUILDGOPATH)/src/$(NAME)
-	GOPATH=$(BUILDGOPATH) GOROOT=/usr/local/go go get -v github.com/vube/depman
-	GOPATH=$(BUILDGOPATH) GOROOT=/usr/local/go depman
+	GOPATH=$(BUILDGOPATH) GOROOT=${GOROOT} go get -v github.com/vube/depman
+	GOPATH=$(BUILDGOPATH) GOROOT=${GOROOT} depman
 	rm -f $(BUILDGOPATH)/bin/depman
 
 compile:	$(BUILDGOROOT)
-	GOPATH=$(BUILDGOPATH) GOROOT=/usr/local/go go install $(GOARGS) $(NAME)/...
+	GOPATH=$(BUILDGOPATH) GOROOT=${GOROOT} go install $(GOARGS) $(NAME)/...
 
-install:	
+install:
 	mkdir -p $(INSTGOPATH)/$(SRCDIR)
 	rsync -a $(BUILDGOPATH)/$(SRCDIR)/etc/*.yml $(INSTGOPATH)/$(SRCDIR)/etc/
 	rsync -a $(BUILDGOPATH)/bin $(INSTGOPATH)
@@ -64,20 +63,32 @@ install:
 	chown -Rh stackato.stackato $(INSTHOMEDIR)
 
 clean:	$(BUILDGOROOT)
-	GOPATH=$(BUILDGOPATH) GOROOT=/usr/local/go go clean
+	GOPATH=$(BUILDGOPATH) GOROOT=${GOROOT} go clean
 
 # For developer use.
 
-dev-install:	fmt dev-installall
+dev-build:
+	./dev-build.sh
 
-# convenient alias
-i:	dev-install
+dev-install:	fmt  dev-installall
+
+dev-install-race: fmt  dev-installall-race
 
 dev-installall:
 	go install $(GOARGS) $(NAME)/...
+
+
+dev-installall-race:
+	go install $(GOARGS-RACE-DETECTION) $(NAME)/...
 
 fmt:
 	gofmt -w .
 
 dev-test:
-	go test $(GOARGS) $(GOARGS_TEST) $(NAME)/... 
+	go test $(GOARGS) $(NAME)/...
+
+# convenient alias
+
+i:	dev-install dev-build
+
+i-race: dev-install-race dev-build

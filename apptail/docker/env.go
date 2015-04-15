@@ -1,8 +1,8 @@
 package docker
 
 import (
-	"os"
 	"encoding/json"
+	"os"
 	"path/filepath"
 )
 
