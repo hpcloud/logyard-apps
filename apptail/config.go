@@ -12,10 +12,11 @@ type leakyBucketConfig struct {
 }
 
 type Config struct {
-	MaxRecordSize     int    `json:"max_record_size"`
-	MaxLinesPerSecond int64  `json:"max_lines_per_second"`
-	MaxLinesBurst     uint16 `json:"max_lines_burst"`
-	FileSizeLimit     int64  `json:"read_limit"`
+	MaxRecordSize                  int    `json:"max_record_size"`
+	MaxLinesPerSecond              int64  `json:"max_lines_per_second"`
+	MaxLinesBurst                  uint16 `json:"max_lines_burst"`
+	FileSizeLimit                  int64  `json:"read_limit"`
+	PersistPositionIntervalSeconds int64  `json:"persist_position_interval_seconds"`
 }
 
 var c *server.Config
