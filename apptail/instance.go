@@ -7,6 +7,7 @@ import (
 	"github.com/ActiveState/logyard-apps/apptail/event"
 	"github.com/ActiveState/logyard-apps/apptail/message"
 	"github.com/ActiveState/logyard-apps/apptail/pubchannel"
+	"github.com/ActiveState/logyard-apps/apptail/storage"
 	"github.com/ActiveState/logyard-apps/apptail/util"
 	"github.com/ActiveState/logyard-apps/common"
 	"github.com/ActiveState/logyard-apps/sieve"
@@ -18,6 +19,9 @@ import (
 	"strings"
 	"time"
 )
+
+const ID_LENGTH = 12
+const INITIAL_OFFSET = 0
 
 // Instance is the NATS message sent by dea_ng to notify of new instances.
 type Instance struct {
@@ -37,7 +41,7 @@ func (instance *Instance) Identifier() string {
 }
 
 // Tail begins tailing the files for this instance.
-func (instance *Instance) Tail() {
+func (instance *Instance) Tail(tracker storage.Tracker) {
 	log.Infof("Tailing %v logs for %v -- %+v",
 		instance.Type, instance.Identifier(), instance)
 
@@ -49,23 +53,46 @@ func (instance *Instance) Tail() {
 
 	log.Infof("Determined log files: %+v", logfiles)
 
+	shortDockerId := instance.getShortDockerId()
+
+	tracker.RegisterInstance(shortDockerId)
+
 	for name, filename := range logfiles {
-		go instance.tailFile(name, filename, stopCh)
+		go instance.tailFile(name, filename, stopCh, tracker)
 	}
 
-	docker.DockerListener.BlockUntilContainerStops(instance.DockerId)
-	log.Infof("Container for %v exited", instance.Identifier())
-	close(stopCh)
+	go func() {
+		docker.DockerListener.BlockUntilContainerStops(instance.DockerId)
+		log.Infof("Container for %v exited", instance.Identifier())
+		close(stopCh)
+		tracker.Remove(shortDockerId)
+	}()
 
 }
 
-func (instance *Instance) tailFile(name, filename string, stopCh chan bool) {
+func (instance *Instance) getShortDockerId() string {
+	return instance.DockerId[:ID_LENGTH]
+}
+
+func (instance *Instance) tailFile(name, filename string, stopCh chan bool, tracker storage.Tracker) {
 	var err error
+	var location *tail.SeekInfo
+	var limit int64
+	var shouldInitialize bool
 
 	pub := logyard.Broker.NewPublisherMust()
 	defer pub.Stop()
 
-	limit, err := instance.getReadLimit(pub, name, filename)
+	if tracker.IsChildNodeInitialized(instance.getShortDockerId(), filename) {
+		offset := tracker.GetFileCachedOffset(instance.getShortDockerId(), filename)
+		location = &tail.SeekInfo{offset, os.SEEK_SET}
+	} else {
+
+		limit, err = instance.getReadLimit(pub, name, filename)
+		location = &tail.SeekInfo{-limit, os.SEEK_END}
+		shouldInitialize = true
+	}
+
 	if err != nil {
 		log.Warn(err)
 		instance.SendTimelineEvent("WARN -- %v", err)
@@ -78,10 +105,16 @@ func (instance *Instance) tailFile(name, filename string, stopCh chan bool) {
 		MaxLineSize: GetConfig().MaxRecordSize,
 		MustExist:   true,
 		Follow:      true,
-		Location:    &tail.SeekInfo{-limit, os.SEEK_END},
+		Location:    location,
 		ReOpen:      false,
 		Poll:        false,
 		RateLimiter: rateLimiter})
+
+	// IMPORTANT: this registration happens everytime app restarts
+	if shouldInitialize {
+		tracker.InitializeChildNode(instance.getShortDockerId(), filename, INITIAL_OFFSET)
+	}
+
 	if err != nil {
 		log.Warnf("Cannot tail file (%s); %s", filename, err)
 		instance.SendTimelineEvent("ERROR -- Cannot tail file (%s); %s", name, err)
@@ -96,6 +129,12 @@ FORLOOP:
 				err = t.Wait()
 				break FORLOOP
 			}
+			currentOffset, err := t.Tell()
+			if err != nil {
+				log.Error(err.Error())
+
+			}
+			tracker.Update(instance.getShortDockerId(), filename, currentOffset)
 			instance.publishLine(pub, name, line)
 		case <-stopCh:
 			err = t.Stop()

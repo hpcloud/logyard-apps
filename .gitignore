@@ -5,6 +5,7 @@
 
 # make path
 .gopath
+release
 
 # compiledfiles
 apptail/cmd/apptail/apptail
@@ -36,3 +37,4 @@ _testmain.go
 .idea/
 *.iml
 *.iws
+
