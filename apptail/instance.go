@@ -53,22 +53,22 @@ func (instance *Instance) Tail(tracker storage.Tracker) {
 		instance.Type, instance.Identifier(), instance)
 
 	stopCh := make(chan bool)
-
 	instance.pubch = pubchannel.New("event.timeline", stopCh)
 
-	logfiles := instance.getLogFiles()
-
-	log.Infof("Determined log files: %+v", logfiles)
-
 	shortDockerId := instance.getShortDockerId()
-
 	tracker.RegisterInstance(shortDockerId)
 
-	for name, filename := range logfiles {
-		// call tailStream for standard docker logs and tailFile for user custom logs
-		if instance.DockerStreams && (name == STDOUT || name == STDERR) {
-			go instance.tailStream(name, filename, stopCh, tracker)
-		} else {
+	if instance.DockerStreams {
+		for _, stream := range []string{"stdout", "stderr"} {
+			filename := filepath.Join(instance.RootPath, stream)
+			go instance.tailStream(stream, filename, stopCh, tracker)
+		}
+
+	} else {
+		logfiles := instance.getLogFiles()
+		log.Infof("Determined log files: %+v", logfiles)
+
+		for name, filename := range logfiles {
 			go instance.tailFile(name, filename, stopCh, tracker)
 		}
 	}
@@ -142,13 +142,6 @@ func (instance *Instance) tailStream(stream string, filename string, stopCh chan
 	pub := logyard.Broker.NewPublisherMust()
 	defer pub.Stop()
 
-	limit, err := instance.getReadLimit(pub, stream, filename)
-	if err != nil {
-		log.Warn(err)
-		instance.SendTimelineEvent("WARN -- %v", err)
-		return
-	}
-
 	rateLimiter := GetConfig().GetLeakyBucket()
 
 	reqUrl, err := url.Parse(fmt.Sprintf("http://localhost:4243/containers/%s/logs", instance.DockerId))
@@ -177,7 +170,7 @@ func (instance *Instance) tailStream(stream string, filename string, stopCh chan
 		MaxLineSize: GetConfig().MaxRecordSize,
 		MustExist:   false,
 		Follow:      true,
-		Location:    &tail.SeekInfo{-limit, os.SEEK_END},
+		Location:    &tail.SeekInfo{0, os.SEEK_END},
 		ReOpen:      false,
 		Poll:        false,
 		RateLimiter: rateLimiter})
