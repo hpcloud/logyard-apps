@@ -75,17 +75,17 @@ dev-install:	fmt  dev-installall
 dev-install-race: fmt  dev-installall-race
 
 dev-installall:
-	go install $(GOARGS) $(NAME)/...
+	go install $(GOARGS) ./...
 
 
 dev-installall-race:
-	go install $(GOARGS-RACE-DETECTION) $(NAME)/...
+	go install $(GOARGS-RACE-DETECTION) ./...
 
 fmt:
 	gofmt -w .
 
 dev-test:
-	go test $(GOARGS) $(NAME)/...
+	go test $(GOARGS) ./...
 
 # convenient alias
 
