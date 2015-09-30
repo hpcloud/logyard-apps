@@ -20,7 +20,7 @@
 #   rm -rf .gopath; STACKATO_PKG_BRANCH=mybranch make
 #
 
-NAME=github.com/ActiveState/logyard-apps
+NAME=github.com/hpcloud/logyard-apps
 
 SRCDIR=src/$(NAME)
 
