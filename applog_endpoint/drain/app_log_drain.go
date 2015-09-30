@@ -2,13 +2,14 @@ package drain
 
 import (
 	"fmt"
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/logyard-apps/applog_endpoint/config"
-	"github.com/ActiveState/stackato-go/server"
 	"logyard"
 	"logyard/drain"
 	"logyard/util/lineserver"
 	"time"
+
+	"github.com/hpcloud/log"
+	"github.com/hpcloud/logyard-apps/applog_endpoint/config"
+	"github.com/hpcloud/stackato-go/server"
 )
 
 const DRAIN_PREFIX = "tmp.applog_endpoint"

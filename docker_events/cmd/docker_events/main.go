@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/logyard-apps/common"
-	"github.com/ActiveState/logyard-apps/docker_events"
-	"github.com/ActiveState/logyard-apps/sieve"
-	"github.com/ActiveState/stackato-go/server"
-	"github.com/ActiveState/zmqpubsub"
 	"logyard"
 	"time"
+
+	"github.com/hpcloud/log"
+	"github.com/hpcloud/logyard-apps/common"
+	"github.com/hpcloud/logyard-apps/docker_events"
+	"github.com/hpcloud/logyard-apps/sieve"
+	"github.com/hpcloud/stackato-go/server"
+	"github.com/hpcloud/zmqpubsub"
 )
 
 var NodeID string

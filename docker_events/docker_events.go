@@ -2,11 +2,12 @@ package docker_events
 
 import (
 	"encoding/json"
-	"github.com/ActiveState/log"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/hpcloud/log"
 )
 
 const ID_LENGTH = 12

@@ -1,11 +1,12 @@
 package common
 
 import (
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/tail"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/ActiveState/tail"
+	"github.com/hpcloud/log"
 )
 
 func cleanup() {

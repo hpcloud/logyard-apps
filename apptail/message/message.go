@@ -3,10 +3,11 @@ package message
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/logyard-apps/common"
-	"github.com/ActiveState/zmqpubsub"
 	"unicode/utf8"
+
+	"github.com/hpcloud/log"
+	"github.com/hpcloud/logyard-apps/common"
+	"github.com/hpcloud/zmqpubsub"
 )
 
 // Message corresponds to an entry in the app log stream.

@@ -2,11 +2,12 @@ package applog_endpoint
 
 import (
 	"fmt"
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/logyard-apps/applog_endpoint/drain"
-	"github.com/ActiveState/logyard-apps/applog_endpoint/wsutil"
-	"github.com/gorilla/mux"
 	"net/http"
+
+	"github.com/gorilla/mux"
+	"github.com/hpcloud/log"
+	"github.com/hpcloud/logyard-apps/applog_endpoint/drain"
+	"github.com/hpcloud/logyard-apps/applog_endpoint/wsutil"
 )
 
 const COMPONENT = "websocket_endpoint"

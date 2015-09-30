@@ -2,17 +2,6 @@ package apptail
 
 import (
 	"fmt"
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/logyard-apps/apptail/docker"
-	"github.com/ActiveState/logyard-apps/apptail/event"
-	"github.com/ActiveState/logyard-apps/apptail/message"
-	"github.com/ActiveState/logyard-apps/apptail/pubchannel"
-	"github.com/ActiveState/logyard-apps/apptail/storage"
-	"github.com/ActiveState/logyard-apps/apptail/util"
-	"github.com/ActiveState/logyard-apps/common"
-	"github.com/ActiveState/logyard-apps/sieve"
-	"github.com/ActiveState/tail"
-	"github.com/ActiveState/zmqpubsub"
 	"logyard"
 	"net/http"
 	"net/url"
@@ -20,6 +9,18 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/ActiveState/tail"
+	"github.com/hpcloud/log"
+	"github.com/hpcloud/logyard-apps/apptail/docker"
+	"github.com/hpcloud/logyard-apps/apptail/event"
+	"github.com/hpcloud/logyard-apps/apptail/message"
+	"github.com/hpcloud/logyard-apps/apptail/pubchannel"
+	"github.com/hpcloud/logyard-apps/apptail/storage"
+	"github.com/hpcloud/logyard-apps/apptail/util"
+	"github.com/hpcloud/logyard-apps/common"
+	"github.com/hpcloud/logyard-apps/sieve"
+	"github.com/hpcloud/zmqpubsub"
 )
 
 const (

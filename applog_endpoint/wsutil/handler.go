@@ -2,9 +2,10 @@ package wsutil
 
 import (
 	"fmt"
-	"github.com/ActiveState/log"
-	"github.com/gorilla/websocket"
 	"net/http"
+
+	"github.com/gorilla/websocket"
+	"github.com/hpcloud/log"
 )
 
 var upgrader = websocket.Upgrader{

@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/logyard-apps/applog_endpoint"
-	"github.com/ActiveState/logyard-apps/applog_endpoint/config"
-	"github.com/ActiveState/logyard-apps/applog_endpoint/drain"
+	"github.com/hpcloud/log"
+	"github.com/hpcloud/logyard-apps/applog_endpoint"
+	"github.com/hpcloud/logyard-apps/applog_endpoint/config"
+	"github.com/hpcloud/logyard-apps/applog_endpoint/drain"
 )
 
 func main() {

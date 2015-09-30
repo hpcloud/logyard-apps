@@ -1,10 +1,11 @@
 package applog_endpoint
 
 import (
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/logyard-apps/applog_endpoint/config"
-	"github.com/apcera/nats"
 	"strings"
+
+	"github.com/apcera/nats"
+	"github.com/hpcloud/log"
+	"github.com/hpcloud/logyard-apps/applog_endpoint/config"
 )
 
 var NATS *nats.EncodedConn

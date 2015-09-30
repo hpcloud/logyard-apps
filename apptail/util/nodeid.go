@@ -1,10 +1,11 @@
 package util
 
 import (
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/logyard-apps/common"
-	"github.com/ActiveState/stackato-go/server"
 	"sync"
+
+	"github.com/hpcloud/log"
+	"github.com/hpcloud/logyard-apps/common"
+	"github.com/hpcloud/stackato-go/server"
 )
 
 var once sync.Once

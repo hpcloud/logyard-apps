@@ -1,8 +1,9 @@
 package applog_endpoint
 
 import (
-	"github.com/ActiveState/logyard-apps/applog_endpoint/config"
 	"testing"
+
+	"github.com/hpcloud/logyard-apps/applog_endpoint/config"
 )
 
 func TestGetApplogEndpointUriDefault(t *testing.T) {

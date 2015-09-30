@@ -3,10 +3,11 @@ package storage
 import (
 	"bytes"
 	"encoding/gob"
-	"github.com/ActiveState/log"
 	"io/ioutil"
 	"os"
 	"sync"
+
+	"github.com/hpcloud/log"
 )
 
 // exposing these for testing

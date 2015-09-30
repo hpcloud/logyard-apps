@@ -3,14 +3,15 @@ package event
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/logyard-apps/apptail/message"
-	"github.com/ActiveState/logyard-apps/apptail/util"
-	"github.com/ActiveState/logyard-apps/common"
-	"github.com/ActiveState/logyard-apps/sieve"
-	"github.com/ActiveState/zmqpubsub"
 	"logyard"
 	"time"
+
+	"github.com/hpcloud/log"
+	"github.com/hpcloud/logyard-apps/apptail/message"
+	"github.com/hpcloud/logyard-apps/apptail/util"
+	"github.com/hpcloud/logyard-apps/common"
+	"github.com/hpcloud/logyard-apps/sieve"
+	"github.com/hpcloud/zmqpubsub"
 )
 
 // Make relevant cloud events available in application logs. Heroku style.

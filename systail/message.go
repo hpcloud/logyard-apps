@@ -1,7 +1,7 @@
 package systail
 
 import (
-	"github.com/ActiveState/logyard-apps/common"
+	"github.com/hpcloud/logyard-apps/common"
 )
 
 // Message is a struct corresponding to an entry in the

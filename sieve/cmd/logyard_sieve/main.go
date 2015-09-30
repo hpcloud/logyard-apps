@@ -2,14 +2,15 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/logyard-apps/common"
-	"github.com/ActiveState/logyard-apps/sieve"
-	"github.com/ActiveState/logyard-apps/systail"
-	"github.com/ActiveState/stackato-go/server"
-	"github.com/alecthomas/gozmq"
 	"logyard"
 	"time"
+
+	"github.com/alecthomas/gozmq"
+	"github.com/hpcloud/log"
+	"github.com/hpcloud/logyard-apps/common"
+	"github.com/hpcloud/logyard-apps/sieve"
+	"github.com/hpcloud/logyard-apps/systail"
+	"github.com/hpcloud/stackato-go/server"
 )
 
 func main() {

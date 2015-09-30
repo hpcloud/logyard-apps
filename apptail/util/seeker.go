@@ -5,9 +5,10 @@ package util
 import (
 	"bytes"
 	"fmt"
-	"github.com/ActiveState/log"
 	"io"
 	"sync"
+
+	"github.com/hpcloud/log"
 )
 
 type ReadSeekCloseWrapper struct {

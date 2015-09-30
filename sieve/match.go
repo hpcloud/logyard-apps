@@ -3,9 +3,10 @@
 package sieve
 
 import (
-	"github.com/ActiveState/log"
 	"regexp"
 	"strings"
+
+	"github.com/hpcloud/log"
 )
 
 // MultiRegexpMatch allows matching a string against multiple regular

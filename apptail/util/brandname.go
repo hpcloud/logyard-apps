@@ -1,8 +1,8 @@
 package util
 
 import (
-	"github.com/ActiveState/logyard-apps/common"
-	"github.com/ActiveState/stackato-go/server"
+	"github.com/hpcloud/logyard-apps/common"
+	"github.com/hpcloud/stackato-go/server"
 )
 
 type Config struct {

@@ -2,9 +2,10 @@ package wsutil
 
 import (
 	"fmt"
-	"github.com/ActiveState/log"
-	"github.com/gorilla/websocket"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/hpcloud/log"
 )
 
 // WebSocketStream wraps a websocket connection to provide error handling

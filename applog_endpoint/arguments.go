@@ -2,9 +2,10 @@ package applog_endpoint
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 type Arguments struct {

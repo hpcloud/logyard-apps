@@ -3,15 +3,16 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/logyard-apps/common"
-	"github.com/ActiveState/logyard-apps/systail"
-	"github.com/ActiveState/stackato-go/server"
-	"github.com/ActiveState/tail"
-	"github.com/alecthomas/gozmq"
 	"logyard"
 	"os"
 	"unicode/utf8"
+
+	"github.com/ActiveState/tail"
+	"github.com/alecthomas/gozmq"
+	"github.com/hpcloud/log"
+	"github.com/hpcloud/logyard-apps/common"
+	"github.com/hpcloud/logyard-apps/systail"
+	"github.com/hpcloud/stackato-go/server"
 )
 
 func tailLogFile(

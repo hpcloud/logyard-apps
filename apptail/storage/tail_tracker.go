@@ -2,10 +2,11 @@ package storage
 
 import (
 	"fmt"
-	"github.com/ActiveState/log"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/hpcloud/log"
 )
 
 type Tracker interface {

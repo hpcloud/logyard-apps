@@ -1,7 +1,7 @@
 package sieve
 
 import (
-	"github.com/ActiveState/log"
+	"github.com/hpcloud/log"
 )
 
 // TODO: somehow merge this redundant struct with EventParser.

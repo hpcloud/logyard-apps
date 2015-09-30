@@ -2,9 +2,10 @@ package sieve
 
 import (
 	"encoding/json"
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/logyard-apps/common"
-	"github.com/ActiveState/zmqpubsub"
+
+	"github.com/hpcloud/log"
+	"github.com/hpcloud/logyard-apps/common"
+	"github.com/hpcloud/zmqpubsub"
 )
 
 type Event struct {

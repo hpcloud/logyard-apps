@@ -1,9 +1,10 @@
 package drain
 
 import (
-	"github.com/ActiveState/log"
 	"logyard"
 	"strings"
+
+	"github.com/hpcloud/log"
 )
 
 // RemoveOrphanedDrains removes all drains created by applog_endpoint.

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/logyard-apps/sieve"
-	"github.com/ActiveState/stackato-go/server"
+	"github.com/hpcloud/log"
+	"github.com/hpcloud/logyard-apps/sieve"
+	"github.com/hpcloud/stackato-go/server"
 )
 
 type Config struct {

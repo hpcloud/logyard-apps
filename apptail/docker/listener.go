@@ -1,12 +1,13 @@
 package docker
 
 import (
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/logyard-apps/apptail/storage"
-	"github.com/ActiveState/logyard-apps/common"
-	"github.com/ActiveState/logyard-apps/docker_events"
 	"runtime"
 	"sync"
+
+	"github.com/hpcloud/log"
+	"github.com/hpcloud/logyard-apps/apptail/storage"
+	"github.com/hpcloud/logyard-apps/common"
+	"github.com/hpcloud/logyard-apps/docker_events"
 )
 
 const ID_LENGTH = 12

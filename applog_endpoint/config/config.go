@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/ActiveState/log"
+	"github.com/hpcloud/log"
 )
 
 type Config struct {

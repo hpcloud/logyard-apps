@@ -1,11 +1,12 @@
 package apptail
 
 import (
-	"github.com/ActiveState/log"
-	"github.com/ActiveState/logyard-apps/common"
-	"github.com/ActiveState/stackato-go/server"
-	"github.com/ActiveState/tail/ratelimiter"
 	"time"
+
+	"github.com/ActiveState/tail/ratelimiter"
+	"github.com/hpcloud/log"
+	"github.com/hpcloud/logyard-apps/common"
+	"github.com/hpcloud/stackato-go/server"
 )
 
 type leakyBucketConfig struct {

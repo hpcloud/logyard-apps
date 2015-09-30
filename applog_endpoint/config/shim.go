@@ -1,4 +1,4 @@
-// Shim for github.com/ActiveState/stackato-go/server to make it easier to
+// Shim for github.com/hpcloud/stackato-go/server to make it easier to
 // replace during testing.
 
 // +build !test
@@ -6,8 +6,8 @@
 package config
 
 import (
-	"github.com/ActiveState/stackato-go/server"
 	"github.com/apcera/nats"
+	"github.com/hpcloud/stackato-go/server"
 )
 
 type ServerConfig struct {

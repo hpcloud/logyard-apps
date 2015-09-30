@@ -2,10 +2,11 @@ package pubchannel
 
 import (
 	"encoding/json"
-	"github.com/ActiveState/logyard-apps/common"
-	"github.com/ActiveState/zmqpubsub"
 	"logyard"
 	"time"
+
+	"github.com/hpcloud/logyard-apps/common"
+	"github.com/hpcloud/zmqpubsub"
 )
 
 // PubChannel abstracts zmqpubsub.Publisher using Go's channels. Unlike

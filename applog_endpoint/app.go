@@ -1,8 +1,8 @@
 package applog_endpoint
 
 import (
-	"github.com/ActiveState/stackato-go/client"
-	"github.com/ActiveState/stackato-go/server"
+	"github.com/hpcloud/stackato-go/client"
+	"github.com/hpcloud/stackato-go/server"
 )
 
 func recentLogs(token, appGUID string, num int) ([]string, error) {

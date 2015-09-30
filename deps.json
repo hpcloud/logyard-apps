@@ -1,6 +1,6 @@
 {
     "github.com/ActiveState/tail": {
-        "repo": "http://git-mirrors.activestate.com/github.com/ActiveState/tail.git",
+        "repo": "http://git-mirrors.activestate.com/github.com/hpcloud/tail.git",
         "version": "06b4cfd99db4fe0111ffec87b591fdc5c6ab82e8",
         "type": "git-clone",
         "alias": "github.com/ActiveState/tail"
